@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Liquor Licenses | Dreck</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
+<style>
+:root {
+    --bg-primary: #08090a;
+    --bg-surface: #0d0e12;
+    --bg-surface-2: #13141a;
+    --bg-surface-3: #16171c;
+    --border: #1e1f25;
+    --border-hover: #2a2b32;
+    --text-primary: #e2e4e9;
+    --text-secondary: #8b8d98;
+    --text-dim: #5a5c66;
+    --blue: #3b82f6;
+    --blue-dim: #2563eb;
+    --amber: #f5a623;
+    --green: #22c55e;
+    --red: #ef4444;
+    --pink: #ec4899;
+    --orange: #f97316;
+    --purple: #a855f7;
+    --cyan: #06b6d4;
+    --font-body: 'Outfit', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    --radius: 10px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg-primary); color:var(--text-primary); font-family:var(--font-body); font-size:15px; line-height:1.5; }
+a { color:var(--blue); text-decoration:none; }
+a:hover { text-decoration:underline; }
+
+.header { background:var(--bg-surface); border-bottom:1px solid var(--border); padding:14px 24px; display:flex; align-items:center; gap:16px; position:sticky; top:0; z-index:1000; }
+.header .logo { font-size:20px; font-weight:700; letter-spacing:-0.5px; }
+.header .logo span { color:var(--amber); }
+.header .subtitle { color:var(--text-secondary); font-size:13px; font-weight:400; }
+.header .meta { margin-left:auto; font-size:12px; color:var(--text-dim); font-family:var(--font-mono); }
+
+.container { max-width:1600px; margin:0 auto; padding:20px 24px; }
+
+.stats-row { display:grid; grid-template-columns:repeat(auto-fit, minmax(160px,1fr)); gap:12px; margin-bottom:20px; }
+.stat-card { background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px 18px; }
+.stat-card .label { font-size:11px; text-transform:uppercase; letter-spacing:0.8px; color:var(--text-dim); font-weight:500; margin-bottom:4px; }
+.stat-card .value { font-size:28px; font-weight:700; font-family:var(--font-mono); letter-spacing:-1px; }
+.stat-card .value.blue { color:var(--blue); }
+.stat-card .value.green { color:var(--green); }
+.stat-card .value.amber { color:var(--amber); }
+.stat-card .value.red { color:var(--red); }
+.stat-card .value.pink { color:var(--pink); }
+.stat-card .value.purple { color:var(--purple); }
+
+.diff-panel { background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--radius); margin-bottom:20px; overflow:hidden; }
+.diff-header { padding:14px 18px; display:flex; align-items:center; gap:10px; cursor:pointer; user-select:none; }
+.diff-header:hover { background:var(--bg-surface-2); }
+.diff-header h3 { font-size:14px; font-weight:600; }
+.diff-header .badge { background:var(--blue); color:#fff; font-size:11px; padding:2px 8px; border-radius:99px; font-weight:600; font-family:var(--font-mono); }
+.diff-header .arrow { margin-left:auto; color:var(--text-dim); transition:transform 0.2s; }
+.diff-header.open .arrow { transform:rotate(180deg); }
+.diff-body { display:none; border-top:1px solid var(--border); padding:14px 18px; }
+.diff-body.show { display:block; }
+.diff-item { padding:8px 0; border-bottom:1px solid var(--border); font-size:13px; }
+.diff-item:last-child { border-bottom:none; }
+.diff-item .name { font-weight:600; }
+.diff-item .detail { color:var(--text-secondary); }
+.diff-item .tag { display:inline-block; font-size:10px; text-transform:uppercase; padding:1px 6px; border-radius:4px; font-weight:600; font-family:var(--font-mono); }
+.diff-item .tag.new { background:rgba(34,197,94,0.15); color:var(--green); }
+.diff-item .tag.removed { background:rgba(239,68,68,0.15); color:var(--red); }
+.diff-item .tag.changed { background:rgba(245,166,35,0.15); color:var(--amber); }
+
+.filters-bar { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:16px; align-items:flex-end; }
+.filter-group { display:flex; flex-direction:column; gap:4px; }
+.filter-group label { font-size:10px; text-transform:uppercase; letter-spacing:0.8px; color:var(--text-dim); font-weight:500; }
+.filter-group select, .filter-group input[type="text"] {
+    background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary);
+    padding:8px 12px; border-radius:8px; font-size:13px; font-family:var(--font-body);
+    min-width:160px; outline:none;
+}
+.filter-group select:focus, .filter-group input:focus { border-color:var(--blue); }
+.filter-group input[type="text"] { min-width:220px; }
+.filter-reset { background:var(--bg-surface-2); border:1px solid var(--border); color:var(--text-secondary); padding:8px 14px; border-radius:8px; font-size:12px; cursor:pointer; font-family:var(--font-body); }
+.filter-reset:hover { background:var(--bg-surface-3); color:var(--text-primary); }
+
+.toggle-btn { display:inline-flex; align-items:center; gap:6px; padding:8px 14px; border-radius:8px; font-size:12px; font-family:var(--font-body); font-weight:500; cursor:pointer; border:1px solid var(--border); background:var(--bg-surface); color:var(--text-secondary); transition:all 0.15s; }
+.toggle-btn:hover { border-color:var(--border-hover); color:var(--text-primary); }
+.toggle-btn.active { background:rgba(245,166,35,0.12); border-color:var(--amber); color:var(--amber); }
+.toggle-btn .dot { width:8px; height:8px; border-radius:50%; background:var(--text-dim); transition:background 0.15s; }
+.toggle-btn.active .dot { background:var(--amber); box-shadow:0 0 6px var(--amber); }
+
+.tab-bar { display:flex; gap:0; margin-bottom:16px; border-bottom:1px solid var(--border); }
+.tab-btn { padding:10px 20px; background:none; border:none; color:var(--text-secondary); font-size:14px; font-family:var(--font-body); cursor:pointer; border-bottom:2px solid transparent; font-weight:500; }
+.tab-btn:hover { color:var(--text-primary); }
+.tab-btn.active { color:var(--blue); border-bottom-color:var(--blue); }
+.tab-content { display:none; }
+.tab-content.active { display:block; }
+
+#map { height:500px; border-radius:var(--radius); border:1px solid var(--border); }
+.leaflet-container { background:var(--bg-surface) !important; }
+.leaflet-tile-pane { filter:brightness(0.7) contrast(1.1) saturate(0.8); }
+.leaflet-popup-content-wrapper { background:var(--bg-surface-2) !important; color:var(--text-primary) !important; border-radius:8px !important; border:1px solid var(--border); box-shadow:0 8px 32px rgba(0,0,0,0.6) !important; }
+.leaflet-popup-tip { background:var(--bg-surface-2) !important; }
+.leaflet-popup-content { font-family:var(--font-body) !important; font-size:13px !important; line-height:1.5 !important; }
+.leaflet-popup-content .popup-name { font-weight:600; font-size:14px; margin-bottom:4px; }
+.leaflet-popup-content .popup-type { color:var(--amber); font-size:11px; text-transform:uppercase; font-weight:600; letter-spacing:0.5px; margin-bottom:6px; }
+.leaflet-popup-content .popup-row { color:var(--text-secondary); font-size:12px; margin-bottom:3px; }
+.leaflet-popup-content .popup-status { display:inline-block; font-size:10px; padding:1px 6px; border-radius:4px; font-weight:600; font-family:var(--font-mono); }
+.leaflet-popup-content .popup-links { display:flex; gap:10px; margin-top:6px; padding-top:6px; border-top:1px solid #1e1f25; }
+.leaflet-popup-content .popup-links a { font-size:11px; font-weight:500; }
+.leaflet-popup-content .popup-rt { margin-top:6px; padding:6px 8px; background:rgba(59,130,246,0.08); border-radius:6px; border:1px solid rgba(59,130,246,0.15); }
+.leaflet-popup-content .popup-rt .rt-label { font-size:10px; text-transform:uppercase; letter-spacing:0.6px; color:var(--blue); font-weight:600; margin-bottom:2px; }
+.leaflet-popup-content .popup-rt .rt-detail { font-size:11px; color:var(--text-secondary); }
+.marker-cluster { background:rgba(59,130,246,0.3) !important; }
+.marker-cluster div { background:var(--blue) !important; color:#fff !important; font-family:var(--font-mono) !important; font-weight:600 !important; font-size:12px !important; }
+
+.table-wrap { overflow-x:auto; border:1px solid var(--border); border-radius:var(--radius); }
+table { width:100%; border-collapse:collapse; font-size:13px; }
+thead th { background:var(--bg-surface-2); color:var(--text-secondary); font-size:11px; text-transform:uppercase; letter-spacing:0.6px; font-weight:600; padding:10px 14px; text-align:left; cursor:pointer; white-space:nowrap; position:sticky; top:0; border-bottom:1px solid var(--border); user-select:none; }
+thead th:hover { color:var(--text-primary); background:var(--bg-surface-3); }
+thead th .sort-arrow { margin-left:4px; color:var(--text-dim); }
+tbody tr { border-bottom:1px solid var(--border); }
+tbody tr:hover { background:var(--bg-surface); }
+tbody td { padding:9px 14px; color:var(--text-primary); white-space:nowrap; }
+tbody td.wrap { white-space:normal; max-width:280px; }
+.status-badge { display:inline-block; font-size:10px; padding:2px 7px; border-radius:4px; font-weight:600; font-family:var(--font-mono); text-transform:uppercase; letter-spacing:0.3px; }
+.status-badge.active { background:rgba(34,197,94,0.15); color:var(--green); }
+.status-badge.pending { background:rgba(59,130,246,0.15); color:var(--blue); }
+.status-badge.delinquent { background:rgba(245,166,35,0.15); color:var(--amber); }
+.status-badge.closed { background:rgba(239,68,68,0.1); color:var(--text-dim); }
+.status-badge.approved { background:rgba(168,85,247,0.15); color:var(--purple); }
+.rt-badge { display:inline-block; font-size:9px; padding:1px 5px; border-radius:3px; font-weight:600; font-family:var(--font-mono); background:rgba(59,130,246,0.12); color:var(--blue); vertical-align:middle; cursor:default; }
+
+.pagination { display:flex; align-items:center; justify-content:space-between; padding:12px 0; }
+.pagination .info { font-size:12px; color:var(--text-dim); font-family:var(--font-mono); }
+.pagination .pages { display:flex; gap:4px; }
+.pagination .pages button { background:var(--bg-surface); border:1px solid var(--border); color:var(--text-secondary); padding:6px 12px; border-radius:6px; font-size:12px; cursor:pointer; font-family:var(--font-mono); }
+.pagination .pages button:hover { background:var(--bg-surface-2); color:var(--text-primary); }
+.pagination .pages button.active { background:var(--blue); border-color:var(--blue); color:#fff; }
+.pagination .pages button:disabled { opacity:0.4; cursor:default; }
+
+.loading { text-align:center; padding:80px 20px; }
+.loading .spinner { display:inline-block; width:32px; height:32px; border:3px solid var(--border); border-top-color:var(--blue); border-radius:50%; animation:spin 0.8s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.loading p { margin-top:12px; color:var(--text-secondary); font-size:13px; }
+
+.map-legend { position:absolute; bottom:24px; right:24px; background:var(--bg-surface-2); border:1px solid var(--border); border-radius:8px; padding:10px 14px; z-index:800; font-size:11px; }
+.map-legend .legend-title { font-size:10px; text-transform:uppercase; letter-spacing:0.6px; color:var(--text-dim); font-weight:600; margin-bottom:6px; }
+.map-legend .legend-item { display:flex; align-items:center; gap:6px; margin-bottom:3px; color:var(--text-secondary); }
+.map-legend .legend-item:last-child { margin-bottom:0; }
+
+@media (max-width:768px) {
+    .container { padding:12px; }
+    .stats-row { grid-template-columns:repeat(3,1fr); }
+    #map { height:350px; }
+    .filters-bar { gap:8px; }
+    .filter-group select, .filter-group input { min-width:120px; font-size:12px; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+    <div class="logo">🍸 Liquor <span>Licenses</span></div>
+    <div class="subtitle">Denver Metro Tracker</div>
+    <div class="meta" id="lastUpdated"></div>
+</div>
+
+<div class="container">
+    <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <p>Loading license data…</p>
+    </div>
+
+    <div id="app" style="display:none">
+        <div class="stats-row" id="statsRow"></div>
+
+        <div class="diff-panel" id="diffPanel" style="display:none">
+            <div class="diff-header" id="diffToggle">
+                <h3>📋 What's Changed</h3>
+                <span class="badge" id="diffBadge">0</span>
+                <span class="arrow">▼</span>
+            </div>
+            <div class="diff-body" id="diffBody"></div>
+        </div>
+
+        <div class="filters-bar">
+            <div class="filter-group">
+                <label>Search</label>
+                <input type="text" id="filterSearch" placeholder="Name, address, DBA…">
+            </div>
+            <div class="filter-group">
+                <label>Status</label>
+                <select id="filterStatus"><option value="">All statuses</option></select>
+            </div>
+            <div class="filter-group">
+                <label>License Type</label>
+                <select id="filterType"><option value="">All types</option></select>
+            </div>
+            <div class="filter-group">
+                <label>City</label>
+                <select id="filterCity"><option value="">All cities</option></select>
+            </div>
+            <div class="filter-group">
+                <label>Neighborhood</label>
+                <select id="filterNeighborhood"><option value="">All neighborhoods</option></select>
+            </div>
+            <button class="toggle-btn" id="newsworthyToggle"><span class="dot"></span> Newsworthy only</button>
+            <button class="filter-reset" id="filterReset">Reset filters</button>
+        </div>
+
+        <div class="tab-bar">
+            <button class="tab-btn active" data-tab="map">Map</button>
+            <button class="tab-btn" data-tab="table">Table</button>
+        </div>
+
+        <div class="tab-content active" id="tab-map">
+            <div id="map"></div>
+        </div>
+
+        <div class="tab-content" id="tab-table">
+            <div class="table-wrap" style="max-height:600px; overflow-y:auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th data-sort="name">Name <span class="sort-arrow"></span></th>
+                            <th data-sort="license_type">Type <span class="sort-arrow"></span></th>
+                            <th data-sort="status">Status <span class="sort-arrow"></span></th>
+                            <th data-sort="address">Address <span class="sort-arrow"></span></th>
+                            <th data-sort="city">City <span class="sort-arrow"></span></th>
+                            <th data-sort="neighborhood">Neighborhood <span class="sort-arrow"></span></th>
+                            <th data-sort="issue_date">Issued <span class="sort-arrow"></span></th>
+                            <th data-sort="expiration_date">Expires <span class="sort-arrow"></span></th>
+                            <th>RT</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+            <div class="pagination" id="pagination"></div>
+        </div>
+    </div>
+</div>
+
+<script src="auth.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script>
+(function() {
+    'use strict';
+
+    let DATA = null;
+    let filtered = [];
+    let map, markerGroup;
+    let sortCol = 'name', sortDir = 1;
+    let page = 0;
+    const PAGE_SIZE = 100;
+    let newsworthyOnly = false;
+
+    const NEWSWORTHY_STATUSES = new Set([
+        'PENDING', 'DELINQUENT', 'Approved',
+        'LICENSE ISSUED - ACTIVE', 'Active',
+        'CLOSED - SURRENDERED', 'CLOSED - REVOKED'
+    ]);
+
+    function statusClass(s) {
+        if (!s) return 'closed';
+        const sl = s.toLowerCase();
+        if (sl.includes('active') || sl.includes('issued')) return 'active';
+        if (sl.includes('pending')) return 'pending';
+        if (sl.includes('delinquent')) return 'delinquent';
+        if (sl.includes('approved')) return 'approved';
+        return 'closed';
+    }
+
+    const STATUS_COLORS = { active:'#22c55e', pending:'#3b82f6', delinquent:'#f5a623', approved:'#a855f7', closed:'#5a5c66' };
+    function statusColor(s) { return STATUS_COLORS[statusClass(s)] || '#5a5c66'; }
+
+    // Pie-chart SVG markers: fill = status color, blue ring = in restaurant tracker
+    function makePieIcon(status, hasRt) {
+        const color = statusColor(status);
+        const sz = 16, r = sz / 2;
+        const stroke = hasRt ? '#3b82f6' : 'rgba(255,255,255,0.25)';
+        const sw = hasRt ? 2.5 : 1.5;
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}">` +
+            `<circle cx="${r}" cy="${r}" r="${r-sw/2}" fill="${color}" stroke="${stroke}" stroke-width="${sw}"/>` +
+            (hasRt ? `<circle cx="${r}" cy="${r}" r="2" fill="#3b82f6" opacity="0.9"/>` : '') +
+            `</svg>`;
+        return L.divIcon({ className:'', iconSize:[sz,sz], iconAnchor:[r,r], html:svg });
+    }
+
+    function gmapsUrl(addr, city) {
+        return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent((addr?addr+', ':'') + (city||'') + ', CO');
+    }
+    function streetViewUrl(lat, lng) {
+        return `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lng}`;
+    }
+
+    async function init() {
+        try {
+            const resp = await fetch('liquor-data.json');
+            DATA = await resp.json();
+        } catch(e) {
+            document.getElementById('loading').innerHTML = '<p style="color:#ef4444">Failed to load data. Run the scraper first.</p>';
+            return;
+        }
+
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('app').style.display = 'block';
+
+        const gen = DATA.metadata.generated;
+        if (gen) {
+            const d = new Date(gen);
+            document.getElementById('lastUpdated').textContent = 'Updated ' + d.toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'});
+        }
+
+        buildStats();
+        buildDiff();
+        buildFilters();
+        initMap();
+        applyFilters();
+
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+                if (btn.dataset.tab === 'map') setTimeout(() => map.invalidateSize(), 100);
+            });
+        });
+
+        document.querySelectorAll('thead th[data-sort]').forEach(th => {
+            th.addEventListener('click', () => {
+                const col = th.dataset.sort;
+                if (sortCol === col) sortDir *= -1;
+                else { sortCol = col; sortDir = 1; }
+                renderTable();
+            });
+        });
+    }
+
+    function buildStats() {
+        const bs = DATA.summary.by_status;
+        const active = (bs['LICENSE ISSUED - ACTIVE']||0) + (bs['Active']||0);
+        const rtCount = DATA.records.filter(r => r.rt_match).length;
+        const cards = [
+            { label:'Total Records', value:DATA.records.length.toLocaleString(), cls:'blue' },
+            { label:'Active', value:active.toLocaleString(), cls:'green' },
+            { label:'Recently Approved', value:(bs['Approved']||0).toLocaleString(), cls:'purple' },
+            { label:'Pending', value:(bs['PENDING']||0).toLocaleString(), cls:'amber' },
+            { label:'Delinquent', value:(bs['DELINQUENT']||0).toLocaleString(), cls:'red' },
+            { label:'Restaurant Tracker ✦', value:rtCount.toLocaleString(), cls:'blue' },
+        ];
+        document.getElementById('statsRow').innerHTML = cards.map(c =>
+            `<div class="stat-card"><div class="label">${c.label}</div><div class="value ${c.cls}">${c.value}</div></div>`
+        ).join('');
+    }
+
+    function buildDiff() {
+        const diff = DATA.diff;
+        const total = diff.new_count + diff.removed_count + diff.status_changes_count;
+        if (total === 0) return;
+        document.getElementById('diffPanel').style.display = 'block';
+        document.getElementById('diffBadge').textContent = total;
+        let html = '';
+        diff.new.forEach(r => { html += `<div class="diff-item"><span class="tag new">new</span> <span class="name">${esc(r.name)}</span> <span class="detail">— ${esc(r.license_type)} at ${esc(r.address)}, ${esc(r.city)}</span></div>`; });
+        diff.removed.forEach(r => { html += `<div class="diff-item"><span class="tag removed">gone</span> <span class="name">${esc(r.name)}</span> <span class="detail">— ${esc(r.license_type)} at ${esc(r.address)}</span></div>`; });
+        diff.status_changes.forEach(c => { html += `<div class="diff-item"><span class="tag changed">changed</span> <span class="name">${esc(c.name)}</span> <span class="detail">— ${esc(c.old_status)} → ${esc(c.new_status)}</span></div>`; });
+        document.getElementById('diffBody').innerHTML = html || '<p style="color:var(--text-dim);font-size:13px">No changes.</p>';
+        document.getElementById('diffToggle').addEventListener('click', function() {
+            this.classList.toggle('open');
+            document.getElementById('diffBody').classList.toggle('show');
+        });
+    }
+
+    function buildFilters() {
+        const recs = DATA.records;
+        const addOpts = (id, vals) => { const sel = document.getElementById(id); vals.forEach(v => { const o = document.createElement('option'); o.value=v; o.textContent=v; sel.appendChild(o); }); };
+        addOpts('filterStatus', [...new Set(recs.map(r=>r.status).filter(Boolean))].sort());
+        addOpts('filterType', [...new Set(recs.map(r=>r.license_type).filter(Boolean))].sort());
+        addOpts('filterCity', [...new Set(recs.map(r=>r.city).filter(Boolean))].sort());
+        addOpts('filterNeighborhood', [...new Set(recs.map(r=>r.neighborhood).filter(Boolean))].sort());
+
+        let deb;
+        document.getElementById('filterSearch').addEventListener('input', () => { clearTimeout(deb); deb = setTimeout(applyFilters, 200); });
+        ['filterStatus','filterType','filterCity','filterNeighborhood'].forEach(id => {
+            document.getElementById(id).addEventListener('change', applyFilters);
+        });
+        document.getElementById('newsworthyToggle').addEventListener('click', function() {
+            newsworthyOnly = !newsworthyOnly;
+            this.classList.toggle('active', newsworthyOnly);
+            applyFilters();
+        });
+        document.getElementById('filterReset').addEventListener('click', () => {
+            document.getElementById('filterSearch').value = '';
+            document.getElementById('filterStatus').value = '';
+            document.getElementById('filterType').value = '';
+            document.getElementById('filterCity').value = '';
+            document.getElementById('filterNeighborhood').value = '';
+            newsworthyOnly = false;
+            document.getElementById('newsworthyToggle').classList.remove('active');
+            applyFilters();
+        });
+    }
+
+    function applyFilters() {
+        const search = document.getElementById('filterSearch').value.toLowerCase().trim();
+        const status = document.getElementById('filterStatus').value;
+        const type = document.getElementById('filterType').value;
+        const city = document.getElementById('filterCity').value;
+        const hood = document.getElementById('filterNeighborhood').value;
+
+        filtered = DATA.records.filter(r => {
+            if (newsworthyOnly && !NEWSWORTHY_STATUSES.has(r.status)) return false;
+            if (status && r.status !== status) return false;
+            if (type && r.license_type !== type) return false;
+            if (city && r.city !== city) return false;
+            if (hood && r.neighborhood !== hood) return false;
+            if (search) {
+                const hay = [r.name,r.dba,r.address,r.city,r.neighborhood,r.license_type].join(' ').toLowerCase();
+                if (!hay.includes(search)) return false;
+            }
+            return true;
+        });
+        page = 0;
+        renderMap();
+        renderTable();
+    }
+
+    function initMap() {
+        map = L.map('map', { preferCanvas:true }).setView([39.74, -104.99], 11);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            maxZoom:19,
+            attribution:'&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
+        }).addTo(map);
+
+        markerGroup = L.markerClusterGroup({ maxClusterRadius:40, spiderfyOnMaxZoom:true, showCoverageOnHover:false, disableClusteringAtZoom:16 });
+        map.addLayer(markerGroup);
+
+        const legend = L.control({ position:'bottomright' });
+        legend.onAdd = function() {
+            const d = L.DomUtil.create('div','map-legend');
+            d.innerHTML = `<div class="legend-title">Status</div>
+                <div class="legend-item"><svg width="12" height="12"><circle cx="6" cy="6" r="5" fill="#22c55e"/></svg> Active</div>
+                <div class="legend-item"><svg width="12" height="12"><circle cx="6" cy="6" r="5" fill="#3b82f6"/></svg> Pending</div>
+                <div class="legend-item"><svg width="12" height="12"><circle cx="6" cy="6" r="5" fill="#f5a623"/></svg> Delinquent</div>
+                <div class="legend-item"><svg width="12" height="12"><circle cx="6" cy="6" r="5" fill="#a855f7"/></svg> Approved</div>
+                <div class="legend-item"><svg width="12" height="12"><circle cx="6" cy="6" r="5" fill="#5a5c66"/></svg> Closed</div>
+                <div style="border-top:1px solid #1e1f25;margin-top:6px;padding-top:6px">
+                <div class="legend-item"><svg width="12" height="12"><circle cx="6" cy="6" r="5" fill="#22c55e" stroke="#3b82f6" stroke-width="2.5"/></svg> In Restaurant Tracker</div>
+                </div>`;
+            return d;
+        };
+        legend.addTo(map);
+    }
+
+    function renderMap() {
+        markerGroup.clearLayers();
+        const geo = filtered.filter(r => r.lat && r.lng);
+
+        geo.forEach(r => {
+            const marker = L.marker([r.lat, r.lng], { icon: makePieIcon(r.status, !!r.rt_match) });
+            const color = statusColor(r.status);
+            let p = `<div class="popup-name">${esc(r.name)}</div>`;
+            if (r.dba && r.dba !== r.name) p += `<div class="popup-row" style="color:var(--text-dim);font-style:italic">DBA: ${esc(r.dba)}</div>`;
+            p += `<div class="popup-type">${esc(r.license_type)}</div>`;
+            p += `<div class="popup-row"><span class="popup-status" style="background:${color}20;color:${color}">${esc(r.status)}</span></div>`;
+
+            const addr = r.address ? `${r.address}, ${r.city}` : r.city;
+            p += `<div class="popup-row">${esc(addr)}</div>`;
+            p += `<div class="popup-links">`;
+            p += `<a href="${gmapsUrl(r.address,r.city)}" target="_blank" rel="noopener">📍 Google Maps</a>`;
+            if (r.lat && r.lng) p += `<a href="${streetViewUrl(r.lat,r.lng)}" target="_blank" rel="noopener">🔭 Street View</a>`;
+            p += `</div>`;
+
+            if (r.neighborhood) p += `<div class="popup-row">📍 ${esc(r.neighborhood)}</div>`;
+            if (r.issue_date) p += `<div class="popup-row">Issued: ${r.issue_date}</div>`;
+            if (r.expiration_date) p += `<div class="popup-row">Expires: ${r.expiration_date}</div>`;
+            if (r.hearing_date) p += `<div class="popup-row" style="color:var(--amber)">📅 Hearing: ${r.hearing_date}${r.hearing_time ? ' '+r.hearing_time : ''}</div>`;
+
+            if (r.rt_match) {
+                const rt = r.rt_match;
+                p += `<div class="popup-rt"><div class="rt-label">Restaurant Tracker</div>`;
+                p += `<div class="rt-detail"><strong>${esc(rt.name)}</strong>`;
+                if (rt.type) p += ` · ${esc(rt.type)}`;
+                p += `</div>`;
+                if (rt.rating) p += `<div class="rt-detail">⭐ ${rt.rating}${rt.reviews ? ' ('+rt.reviews.toLocaleString()+' reviews)':''}</div>`;
+                if (rt.status && rt.status !== 'OPERATIONAL') p += `<div class="rt-detail" style="color:var(--red)">Google: ${esc(rt.status)}</div>`;
+                p += `</div>`;
+            }
+
+            marker.bindPopup(p, { maxWidth:300 });
+            markerGroup.addLayer(marker);
+        });
+    }
+
+    function renderTable() {
+        const sorted = [...filtered].sort((a,b) => {
+            let va = a[sortCol]||'', vb = b[sortCol]||'';
+            if (typeof va === 'string') va = va.toLowerCase();
+            if (typeof vb === 'string') vb = vb.toLowerCase();
+            if (va < vb) return -1*sortDir;
+            if (va > vb) return 1*sortDir;
+            return 0;
+        });
+
+        document.querySelectorAll('thead th[data-sort]').forEach(th => {
+            const arrow = th.querySelector('.sort-arrow');
+            arrow.textContent = th.dataset.sort === sortCol ? (sortDir===1?'▲':'▼') : '';
+        });
+
+        const totalPages = Math.ceil(sorted.length / PAGE_SIZE);
+        const start = page * PAGE_SIZE;
+        const pageData = sorted.slice(start, start + PAGE_SIZE);
+
+        document.getElementById('tableBody').innerHTML = pageData.map(r => {
+            const cls = statusClass(r.status);
+            const gm = gmapsUrl(r.address,r.city);
+            const sv = r.lat && r.lng ? streetViewUrl(r.lat,r.lng) : null;
+            const rtTip = r.rt_match ? `${r.rt_match.name}${r.rt_match.rating?' · ⭐'+r.rt_match.rating:''}${r.rt_match.reviews?' ('+r.rt_match.reviews+')':''}` : '';
+            const rtBadge = r.rt_match ? `<span title="${esc(rtTip)}" class="rt-badge">✦</span>` : '';
+            return `<tr>
+                <td class="wrap"><strong>${esc(r.name)}</strong>${r.dba&&r.dba!==r.name?'<br><span style="color:var(--text-dim);font-size:11px">DBA: '+esc(r.dba)+'</span>':''}</td>
+                <td>${esc(r.license_type)}</td>
+                <td><span class="status-badge ${cls}">${esc(r.status)}</span></td>
+                <td><a href="${gm}" target="_blank" rel="noopener">${esc(r.address)}</a>${sv?' <a href="'+sv+'" target="_blank" rel="noopener" title="Street View" style="font-size:11px">🔭</a>':''}</td>
+                <td>${esc(r.city)}</td>
+                <td>${esc(r.neighborhood||'—')}</td>
+                <td style="font-family:var(--font-mono);font-size:12px">${r.issue_date||'—'}</td>
+                <td style="font-family:var(--font-mono);font-size:12px">${r.expiration_date||'—'}</td>
+                <td style="text-align:center">${rtBadge}</td>
+            </tr>`;
+        }).join('');
+
+        document.getElementById('pagination').innerHTML = `
+            <div class="info">Showing ${start+1}–${Math.min(start+PAGE_SIZE,sorted.length)} of ${sorted.length.toLocaleString()} records</div>
+            <div class="pages">
+                <button ${page===0?'disabled':''} onclick="window._pageTo(0)">«</button>
+                <button ${page===0?'disabled':''} onclick="window._pageTo(${page-1})">‹</button>
+                <button class="active">${page+1} / ${totalPages||1}</button>
+                <button ${page>=totalPages-1?'disabled':''} onclick="window._pageTo(${page+1})">›</button>
+                <button ${page>=totalPages-1?'disabled':''} onclick="window._pageTo(${totalPages-1})">»</button>
+            </div>`;
+    }
+
+    window._pageTo = function(p) { page = Math.max(0,p); renderTable(); };
+    function esc(s) { if(!s)return''; const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
+    if (document.readyState==='loading') document.addEventListener('DOMContentLoaded',init);
+    else init();
+})();
+</script>
+</body>
+</html>
