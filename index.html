@@ -232,6 +232,7 @@
   .cat-active { background: rgba(59,130,246,0.15); color: var(--blue); }
   .cat-renewal { background: rgba(107,114,128,0.2); color: var(--gray); }
   .cat-closed { background: rgba(55,65,81,0.3); color: var(--text-muted); }
+  .cat-resolved_delinquent { background: rgba(107,114,128,0.2); color: var(--gray); }
   .rt-badge { display: inline-flex; align-items: center; gap: 3px; color: var(--blue); font-size: 13px; cursor: help; }
 
   /* Pagination */
@@ -414,6 +415,7 @@ const CATEGORY_COLORS = {
   new_application: '#22c55e',
   pending: '#f5a623',
   delinquent: '#ef4444',
+  resolved_delinquent: '#6b7280',
   active: '#3b82f6',
   renewal: '#6b7280',
   closed: '#374151',
@@ -423,6 +425,7 @@ const CATEGORY_LABELS = {
   new_application: 'New',
   pending: 'Pending',
   delinquent: 'Delinquent',
+  resolved_delinquent: 'Resolved',
   active: 'Active',
   renewal: 'Renewal',
   closed: 'Closed',
@@ -512,115 +515,75 @@ function buildDiffPanel() {
 
   let html = '';
   diff.new.slice(0, 20).forEach(r => {
-    html += `<div class="diff-item"><span class="diff-tag new">NEW</span> ${esc(r.name)} — ${esc(r.address)}</div>`;
+    html += `<div class="diff-item" style="cursor:pointer" onclick="openDetail('${esc(r.id)}')"><span class="diff-tag new">NEW</span> ${esc(r.name)} — ${esc(r.address)}</div>`;
   });
   diff.removed.slice(0, 20).forEach(r => {
     html += `<div class="diff-item"><span class="diff-tag removed">GONE</span> ${esc(r.name)} — ${esc(r.address)}</div>`;
   });
   diff.status_changes.slice(0, 20).forEach(r => {
-    html += `<div class="diff-item"><span class="diff-tag changed">CHG</span> ${esc(r.name)}: ${esc(r.old_status)} → ${esc(r.new_status)}</div>`;
+    html += `<div class="diff-item" style="cursor:pointer" onclick="openDetail('${esc(r.id)}')"><span class="diff-tag changed">CHG</span> ${esc(r.name)}: ${esc(r.old_status)} → ${esc(r.new_status)}</div>`;
   });
   document.getElementById('diff-body').innerHTML = html;
 }
 
 function toggleDiff() { document.getElementById('diff-body').classList.toggle('open'); }
 
-// ===== CHART (daily bars) =====
+// ===== CHART (daily bars from issue_date data) =====
 function buildChart() {
-  const history = DATA.chart_history;
-  if (!history || !history.daily || Object.keys(history.daily).length < 2) {
-    document.getElementById('chart-wrap').innerHTML =
-      '<div class="chart-empty">Chart data accumulates daily. Check back after a few days of scraper runs.</div>';
+  const chart = DATA.chart;
+  if (!chart || !chart.days || chart.days.length === 0) {
+    document.getElementById('chart-year').textContent = new Date().getFullYear() + ' YTD';
     return;
   }
 
-  const now = new Date();
-  const currentYear = now.getFullYear();
-  document.getElementById('chart-year').textContent = currentYear + ' YTD';
+  document.getElementById('chart-year').textContent = chart.current_year + ' YTD';
 
-  // Filter to current year entries, sort by date
-  const entries = Object.entries(history.daily)
-    .filter(([date]) => date.startsWith(String(currentYear)))
-    .sort((a, b) => a[0].localeCompare(b[0]));
+  // Format labels as M/D
+  const labels = chart.days.map(d => {
+    const dt = new Date(d + 'T00:00:00');
+    return `${dt.getMonth()+1}/${dt.getDate()}`;
+  });
 
-  if (entries.length < 2) {
-    document.getElementById('chart-wrap').innerHTML =
-      '<div class="chart-empty">Chart data accumulates daily. Check back after a few days of scraper runs.</div>';
-    return;
-  }
+  const datasets = [
+    {
+      label: 'New Licenses',
+      data: chart.new_counts,
+      backgroundColor: 'rgba(34, 197, 94, 0.7)',
+      borderColor: '#22c55e', borderWidth: 1,
+      yAxisID: 'y', order: 2,
+    },
+    {
+      label: 'Cumulative New',
+      data: chart.cumulative_new,
+      type: 'line',
+      borderColor: '#22c55e', backgroundColor: 'transparent',
+      borderWidth: 2, pointRadius: 0, tension: 0.3,
+      yAxisID: 'y1', order: 1,
+    },
+  ];
 
-  // Compute daily deltas (new apps appeared since previous day)
-  const labels = [];
-  const newBars = [];
-  const delinqBars = [];
-  const cumNew = [];
-  const cumDelinq = [];
-  let totalNew = 0;
-  let totalDelinq = 0;
-
-  for (let i = 0; i < entries.length; i++) {
-    const [date, data] = entries[i];
-    labels.push(date.slice(5)); // MM-DD
-
-    let dailyNew = 0;
-    let dailyDelinq = 0;
-    if (i > 0) {
-      const prev = entries[i - 1][1];
-      dailyNew = Math.max(0, data.new_applications - prev.new_applications);
-      dailyDelinq = Math.max(0, data.delinquencies - prev.delinquencies);
-    } else {
-      // First day — use absolute counts as baseline, show zero
-      dailyNew = 0;
-      dailyDelinq = 0;
-    }
-
-    totalNew += dailyNew;
-    totalDelinq += dailyDelinq;
-
-    newBars.push(dailyNew);
-    delinqBars.push(-dailyDelinq);
-    cumNew.push(totalNew);
-    cumDelinq.push(-totalDelinq);
+  // Prior year cumulative line (2027+)
+  if (chart.prior_year && chart.prior_cumulative_new && chart.prior_cumulative_new.length > 0) {
+    const priorMap = {};
+    chart.prior_cumulative_new.forEach(p => {
+      const d = new Date(p.date + 'T00:00:00');
+      // Shift to current year for alignment
+      const key = `${d.getMonth()+1}/${d.getDate()}`;
+      priorMap[key] = p.value;
+    });
+    datasets.push({
+      label: `Cumulative New ${chart.prior_year}`,
+      data: labels.map(l => priorMap[l] ?? null),
+      type: 'line', borderColor: 'rgba(34,197,94,0.35)', backgroundColor: 'transparent',
+      borderWidth: 2, borderDash: [6,3], pointRadius: 0, tension: 0.3,
+      yAxisID: 'y1', order: 1, spanGaps: true,
+    });
   }
 
   const ctx = document.getElementById('main-chart').getContext('2d');
   new Chart(ctx, {
     type: 'bar',
-    data: {
-      labels,
-      datasets: [
-        {
-          label: 'New Licenses',
-          data: newBars,
-          backgroundColor: 'rgba(34, 197, 94, 0.7)',
-          borderColor: '#22c55e', borderWidth: 1,
-          yAxisID: 'y', order: 2,
-        },
-        {
-          label: 'New Delinquencies',
-          data: delinqBars,
-          backgroundColor: 'rgba(239, 68, 68, 0.7)',
-          borderColor: '#ef4444', borderWidth: 1,
-          yAxisID: 'y', order: 2,
-        },
-        {
-          label: 'Cumulative New',
-          data: cumNew,
-          type: 'line',
-          borderColor: '#22c55e', backgroundColor: 'transparent',
-          borderWidth: 2, pointRadius: 0, tension: 0.3,
-          yAxisID: 'y1', order: 1,
-        },
-        {
-          label: 'Cumulative Delinquencies',
-          data: cumDelinq,
-          type: 'line',
-          borderColor: '#ef4444', backgroundColor: 'transparent',
-          borderWidth: 2, pointRadius: 0, tension: 0.3,
-          yAxisID: 'y1', order: 1,
-        },
-      ],
-    },
+    data: { labels, datasets },
     options: {
       responsive: true,
       maintainAspectRatio: false,
@@ -646,13 +609,13 @@ function buildChart() {
           position: 'left',
           title: { display: true, text: 'Daily Count', color: '#8b8f9a', font: { family: "'Outfit', sans-serif" } },
           grid: { color: 'rgba(35,38,46,0.5)' },
-          ticks: { color: '#8b8f9a', font: { family: "'JetBrains Mono', monospace", size: 11 }, callback: v => Math.abs(v) },
+          ticks: { color: '#8b8f9a', font: { family: "'JetBrains Mono', monospace", size: 11 } },
         },
         y1: {
           position: 'right',
           title: { display: true, text: 'Cumulative YTD', color: '#8b8f9a', font: { family: "'Outfit', sans-serif" } },
           grid: { drawOnChartArea: false },
-          ticks: { color: '#8b8f9a', font: { family: "'JetBrains Mono', monospace", size: 11 }, callback: v => Math.abs(v) },
+          ticks: { color: '#8b8f9a', font: { family: "'JetBrains Mono', monospace", size: 11 } },
         },
       },
     },
@@ -741,6 +704,7 @@ function initMap() {
   let hintTimeout;
   map.getContainer().addEventListener('wheel', function(e) {
     if (e.shiftKey) {
+      e.preventDefault();
       map.scrollWheelZoom.enable();
       setTimeout(() => map.scrollWheelZoom.disable(), 500);
     } else {
@@ -748,7 +712,7 @@ function initMap() {
       clearTimeout(hintTimeout);
       hintTimeout = setTimeout(() => hint.classList.remove('show'), 1500);
     }
-  }, { passive: true });
+  }, { passive: false });
 }
 
 function createDonutIcon(cluster) {

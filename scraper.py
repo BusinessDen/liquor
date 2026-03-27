@@ -276,13 +276,21 @@ def classify_records(records, previous_records):
         if "DELINQUENT" in status:
             rec["category"] = "delinquent"
             continue
+        # For PENDING, active, and approved: check address history
+        # to determine if genuinely new or a renewal
+        addr = normalize_addr(rec.get("address", ""))
+
         if "PENDING" in status:
-            rec["category"] = "pending"
+            # Pending at a known address = renewal in progress (hide)
+            # Pending at a new address = genuinely new application (show)
+            if addr and addr in all_known_addresses:
+                rec["category"] = "renewal"
+            else:
+                rec["category"] = "new_application"
             continue
 
         # Active/approved — new or renewal?
         issue_date_str = rec.get("issue_date")
-        addr = normalize_addr(rec.get("address", ""))
         is_recent = False
 
         if issue_date_str:
@@ -302,45 +310,130 @@ def classify_records(records, previous_records):
         else:
             rec["category"] = "active"
 
+    # --- Post-classification: suppress resolved delinquencies ---
+    # Build set of addresses that have an active license
+    active_addresses = set()
+    for rec in records:
+        status = (rec.get("status") or "").upper()
+        if "ACTIVE" in status and "DELINQUENT" not in status:
+            addr = normalize_addr(rec.get("address", ""))
+            if addr:
+                active_addresses.add(addr)
+
+    # Downgrade delinquent records at addresses with active licenses
+    resolved = 0
+    for rec in records:
+        if rec.get("category") == "delinquent":
+            addr = normalize_addr(rec.get("address", ""))
+            if addr and addr in active_addresses:
+                rec["category"] = "resolved_delinquent"
+                resolved += 1
+
+    if resolved:
+        print(f"  Suppressed {resolved} delinquencies with active licenses at same address")
+
     return records
 
 # ---------------------------------------------------------------------------
 # Chart history (daily accumulation)
 # ---------------------------------------------------------------------------
 
-def update_chart_history(records):
+def build_chart_data(records):
     """
-    Append today's snapshot counts to chart-history.json.
-    Accumulates daily so we have real historical data.
+    Build chart data directly from records' issue_date fields.
+    Groups new_application records by issue_date for daily bars.
+    Delinquencies shown as today's snapshot count.
+    Also updates chart-history.json for future prior-year comparison.
     """
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    now = datetime.now(timezone.utc)
+    today = now.strftime("%Y-%m-%d")
+    current_year = now.year
+    jan1 = f"{current_year}-01-01"
 
+    # Count new applications by issue_date (current year only)
+    new_by_day = defaultdict(int)
+    for rec in records:
+        if rec.get("category") != "new_application":
+            continue
+        issue = rec.get("issue_date")
+        if not issue:
+            continue
+        if issue >= jan1 and issue <= today:
+            new_by_day[issue] += 1
+
+    # Sort days
+    days = sorted(new_by_day.keys())
+
+    # Build arrays
+    new_counts = [new_by_day[d] for d in days]
+
+    # Cumulative
+    cum_new = []
+    running = 0
+    for c in new_counts:
+        running += c
+        cum_new.append(running)
+
+    # Delinquency snapshot
+    delinq_total = sum(1 for r in records if r.get("category") == "delinquent")
+
+    chart = {
+        "current_year": current_year,
+        "days": days,
+        "new_counts": new_counts,
+        "cumulative_new": cum_new,
+        "delinquent_total": delinq_total,
+    }
+
+    # Prior year lines only after Jan 1 2027
+    if current_year >= 2027:
+        prior_year = current_year - 1
+        prior_jan1 = f"{prior_year}-01-01"
+        prior_dec31 = f"{prior_year}-12-31"
+        prior_by_day = defaultdict(int)
+        for rec in records:
+            if rec.get("category") != "new_application":
+                continue
+            issue = rec.get("issue_date")
+            if not issue:
+                continue
+            if prior_jan1 <= issue <= prior_dec31:
+                prior_by_day[issue] += 1
+        prior_days = sorted(prior_by_day.keys())
+        prior_cum = []
+        running = 0
+        for d in prior_days:
+            running += prior_by_day[d]
+            prior_cum.append({"date": d, "value": running})
+        chart["prior_year"] = prior_year
+        chart["prior_cumulative_new"] = prior_cum
+    else:
+        chart["prior_year"] = None
+        chart["prior_cumulative_new"] = []
+
+    # Also update chart-history.json for future prior-year use
     history = {}
     if os.path.exists(CHART_HISTORY_FILE):
         try:
             with open(CHART_HISTORY_FILE, "r") as f:
                 history = json.load(f)
-        except Exception as e:
-            print(f"  Warning: Could not load chart history: {e}")
-
+        except Exception:
+            pass
     if "daily" not in history:
         history["daily"] = {}
 
-    new_apps = sum(1 for r in records if r.get("category") == "new_application")
-    delinquencies = sum(1 for r in records if r.get("category") == "delinquent")
-
+    new_apps_total = sum(1 for r in records if r.get("category") == "new_application")
     history["daily"][today] = {
-        "new_applications": new_apps,
-        "delinquencies": delinquencies,
-        "total": len(records),
+        "new_applications": new_apps_total,
+        "delinquencies": delinq_total,
     }
 
     os.makedirs("data", exist_ok=True)
     with open(CHART_HISTORY_FILE, "w") as f:
         json.dump(history, f, separators=(",", ":"))
 
-    print(f"  Chart history updated for {today}: {new_apps} new apps, {delinquencies} delinquent")
-    return history
+    print(f"  Chart: {len(days)} days with new licenses, {delinq_total} delinquent")
+    return chart
 
 # ---------------------------------------------------------------------------
 # Restaurant Tracker cross-reference
@@ -550,9 +643,9 @@ def main():
         summary["by_category"][rec.get("category", "unknown")] += 1
     summary = {k: dict(v) for k, v in summary.items()}
 
-    # 8. Update chart history
-    print("\n8. Updating chart history...")
-    chart_history = update_chart_history(all_records)
+    # 8. Build chart data
+    print("\n8. Building chart data...")
+    chart_data = build_chart_data(all_records)
 
     # 9. Write output
     print("\n9. Writing output files...")
@@ -563,7 +656,7 @@ def main():
             "sources": source_counts,
         },
         "summary": summary,
-        "chart_history": chart_history,
+        "chart": chart_data,
         "diff": diff,
         "records": all_records,
     }
