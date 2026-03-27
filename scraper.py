@@ -2,7 +2,7 @@
 """
 Denver Metro Liquor License Tracker — Scraper
 Pulls from 3 public data sources, cross-references against BusinessDen restaurant tracker,
-computes diffs, classifies new vs renewal, and generates chart data.
+computes diffs, classifies new vs renewal, and accumulates daily chart history.
 """
 
 import json
@@ -28,15 +28,6 @@ METRO_CITIES = [
     "Louisville", "Lafayette", "Superior", "Erie"
 ]
 
-NEWSWORTHY_TYPES = [
-    "HOTEL AND RESTAURANT", "TAVERN", "BREW PUB", "DISTILLERY PUB",
-    "VINTNER'S RESTAURANT", "BEER AND WINE", "CLUB", "RESORT COMPLEX",
-    "ARTS", "OPTIONAL PREMISES", "RETAIL LIQUOR STORE", "LIQUOR-LICENSED DRUGSTORE",
-    "FERMENTED MALT BEVERAGE", "Hotel and Restaurant", "Tavern", "Brew Pub",
-    "Retail Liquor Store", "Beer and Wine", "Club", "Arts",
-    "Distillery Pub", "Vintner's Restaurant", "Optional Premises"
-]
-
 ARCGIS_URL = (
     "https://services1.arcgis.com/zdB7qR0BtYrg0Xpl/arcgis/rest/services/"
     "ODC_BUSN_LIQUORLICENSES_P/FeatureServer/27/query"
@@ -50,14 +41,13 @@ RT_URL = "https://businessden.github.io/Restaurant-tracker/restaurant-data.json"
 
 OUTPUT_FILE = "liquor-data.json"
 PREVIOUS_FILE = "data/previous.json"
-CHART_FILE = "data/chart-history.json"
+CHART_HISTORY_FILE = "data/chart-history.json"
 
 # ---------------------------------------------------------------------------
 # HTTP helpers
 # ---------------------------------------------------------------------------
 
 def fetch_json(url, retries=3, timeout=30):
-    """Fetch JSON from URL with retries."""
     for attempt in range(retries):
         try:
             req = urllib.request.Request(url, headers={"User-Agent": "BusinessDen-Tracker/1.0"})
@@ -71,7 +61,6 @@ def fetch_json(url, retries=3, timeout=30):
 
 
 def fetch_socrata(dataset_id, where_clause, limit=5000):
-    """Paginated Socrata SODA API fetch."""
     records = []
     offset = 0
     while True:
@@ -94,7 +83,6 @@ def fetch_socrata(dataset_id, where_clause, limit=5000):
 
 
 def fetch_arcgis(where="1=1", fields="*", max_records=None):
-    """Paginated ArcGIS feature service fetch."""
     records = []
     offset = 0
     batch_size = 1000
@@ -126,12 +114,10 @@ def fetch_arcgis(where="1=1", fields="*", max_records=None):
 # ---------------------------------------------------------------------------
 
 def ts_to_iso(ms_timestamp):
-    """Convert millisecond timestamp to ISO date string. Filters junk dates."""
     if ms_timestamp is None:
         return None
     try:
         if isinstance(ms_timestamp, str):
-            # Try parsing ISO string directly
             if "T" in ms_timestamp or "-" in ms_timestamp:
                 dt = datetime.fromisoformat(ms_timestamp.replace("Z", "+00:00"))
                 if 1990 <= dt.year <= 2100:
@@ -148,21 +134,16 @@ def ts_to_iso(ms_timestamp):
 
 
 def normalize_addr(addr):
-    """Normalize address for cross-referencing."""
     if not addr:
         return ""
     addr = addr.upper().strip()
-    # Take first segment before comma
     addr = addr.split(",")[0].strip()
-    # Remove unit/suite designations
     addr = re.sub(r"\s+(UNIT|STE|SUITE|APT|#)\s*\S*", "", addr)
-    # Remove extra whitespace
     addr = re.sub(r"\s+", " ", addr)
     return addr
 
 
 def haversine(lat1, lng1, lat2, lng2):
-    """Distance in meters between two lat/lng points."""
     R = 6371000
     phi1, phi2 = math.radians(lat1), math.radians(lat2)
     dphi = math.radians(lat2 - lat1)
@@ -172,23 +153,15 @@ def haversine(lat1, lng1, lat2, lng2):
 
 
 def normalize_arcgis_record(feat):
-    """Normalize ArcGIS feature to common format."""
     attrs = feat.get("attributes", {})
     geom = feat.get("geometry", {})
-
     lat = geom.get("y")
     lng = geom.get("x")
-
-    # Bounds check — must be in Colorado
     if lat and lng:
         if not (36 <= lat <= 42 and -110 <= lng <= -100):
             return None
 
     bfn = attrs.get("BFN", "")
-    issue_date = ts_to_iso(attrs.get("ISSUE_DATE"))
-    end_date = ts_to_iso(attrs.get("END_DATE"))
-    hearing_date = ts_to_iso(attrs.get("HEARING_DATE"))
-
     return {
         "id": f"denver-{bfn}",
         "source": "denver",
@@ -203,18 +176,17 @@ def normalize_arcgis_record(feat):
         "zip": (attrs.get("ZIP") or "").strip(),
         "lat": lat,
         "lng": lng,
-        "issue_date": issue_date,
-        "expiration_date": end_date,
+        "issue_date": ts_to_iso(attrs.get("ISSUE_DATE")),
+        "expiration_date": ts_to_iso(attrs.get("END_DATE")),
         "neighborhood": (attrs.get("NEIGHBORHOOD") or "").strip(),
         "council_district": str(attrs.get("COUNCIL_DIST") or ""),
-        "hearing_date": hearing_date,
+        "hearing_date": ts_to_iso(attrs.get("HEARING_DATE")),
         "hearing_time": (attrs.get("HEARING_TIME") or "").strip(),
         "hearing_status": (attrs.get("HEARING_STATUS") or "").strip(),
     }
 
 
 def normalize_socrata_record(rec, source):
-    """Normalize Socrata record to common format."""
     lat = None
     lng = None
     location = rec.get("location") or rec.get("location_1")
@@ -222,48 +194,34 @@ def normalize_socrata_record(rec, source):
         if isinstance(location, dict):
             lat = location.get("latitude")
             lng = location.get("longitude")
-            if lat:
-                lat = float(lat)
-            if lng:
-                lng = float(lng)
+            if lat: lat = float(lat)
+            if lng: lng = float(lng)
         elif isinstance(location, str):
-            # Try "POINT (lng lat)" format
             m = re.search(r"POINT\s*\(\s*([-\d.]+)\s+([-\d.]+)\s*\)", location)
             if m:
                 lng, lat = float(m.group(1)), float(m.group(2))
 
-    issue_date = ts_to_iso(rec.get("issue_date"))
-    exp_date = ts_to_iso(rec.get("expiration") or rec.get("expiration_date"))
-
     name = (rec.get("licensee_name") or "").strip()
     dba = (rec.get("doing_business_as") or "").strip()
-    lic_type = (rec.get("license_type") or "").strip()
     lic_num = (rec.get("license_number") or "").strip()
-    address = (rec.get("street_address") or "").strip()
-    city = (rec.get("city") or "").strip()
-    state = (rec.get("state") or "CO").strip()
-    zipcode = (rec.get("zip") or rec.get("zip_code") or "").strip()
-
     status = "Approved" if source == "state_approved" else "Active"
 
-    record_id = f"{source}-{lic_num or name}"
-
     return {
-        "id": record_id,
+        "id": f"{source}-{lic_num or name}",
         "source": source,
         "name": name,
         "dba": dba,
-        "license_type": lic_type,
+        "license_type": (rec.get("license_type") or "").strip(),
         "license_number": lic_num,
         "status": status,
-        "address": address,
-        "city": city,
-        "state": state,
-        "zip": zipcode,
+        "address": (rec.get("street_address") or "").strip(),
+        "city": (rec.get("city") or "").strip(),
+        "state": (rec.get("state") or "CO").strip(),
+        "zip": (rec.get("zip") or rec.get("zip_code") or "").strip(),
         "lat": lat,
         "lng": lng,
-        "issue_date": issue_date,
-        "expiration_date": exp_date,
+        "issue_date": ts_to_iso(rec.get("issue_date")),
+        "expiration_date": ts_to_iso(rec.get("expiration") or rec.get("expiration_date")),
         "neighborhood": "",
         "council_district": "",
         "hearing_date": None,
@@ -277,10 +235,13 @@ def normalize_socrata_record(rec, source):
 
 def classify_records(records, previous_records):
     """
-    Classify each record as 'new_application', 'renewal', 'delinquent',
-    'pending', 'closed', or 'active'. Adds 'category' field.
+    Classify each record. Uses address history to distinguish genuinely new
+    applications from renewals at existing locations.
     """
-    # Build address lookup from previous data
+    now = datetime.now(timezone.utc)
+    one_year_ago = now - timedelta(days=365)
+
+    # Build set of addresses with older licenses (pre-existing locations)
     prev_addresses = set()
     if previous_records:
         for rec in previous_records:
@@ -288,33 +249,38 @@ def classify_records(records, previous_records):
             if addr:
                 prev_addresses.add(addr)
 
-    now = datetime.now(timezone.utc)
-    one_year_ago = now - timedelta(days=365)
+    # Also gather addresses from current data with old issue dates
+    old_addresses = set()
+    for rec in records:
+        issue_str = rec.get("issue_date")
+        if issue_str:
+            try:
+                issue_dt = datetime.fromisoformat(issue_str)
+                if issue_dt.tzinfo is None:
+                    issue_dt = issue_dt.replace(tzinfo=timezone.utc)
+                if issue_dt < one_year_ago:
+                    addr = normalize_addr(rec.get("address", ""))
+                    if addr:
+                        old_addresses.add(addr)
+            except (ValueError, TypeError):
+                pass
+
+    all_known_addresses = prev_addresses | old_addresses
 
     for rec in records:
         status = (rec.get("status") or "").upper()
 
-        # Closed statuses
-        if "CLOSED" in status or "EXPIRED" in status:
+        if "CLOSED" in status or "EXPIRED" in status or "DENIED" in status or "REVOKED" in status:
             rec["category"] = "closed"
             continue
-
-        # Delinquent
         if "DELINQUENT" in status:
             rec["category"] = "delinquent"
             continue
-
-        # Pending
         if "PENDING" in status:
             rec["category"] = "pending"
             continue
 
-        # Denied / Revoked
-        if "DENIED" in status or "REVOKED" in status:
-            rec["category"] = "closed"
-            continue
-
-        # For active/approved licenses, determine if new or renewal
+        # Active/approved — new or renewal?
         issue_date_str = rec.get("issue_date")
         addr = normalize_addr(rec.get("address", ""))
         is_recent = False
@@ -328,103 +294,59 @@ def classify_records(records, previous_records):
             except (ValueError, TypeError):
                 pass
 
-        # If recently issued AND address wasn't in previous data → new application
-        # If recently issued AND address was in previous data → renewal
-        # If not recently issued → active (existing)
-        if is_recent:
-            if addr and addr in prev_addresses:
+        if is_recent or rec.get("source") == "state_approved":
+            if addr and addr in all_known_addresses:
                 rec["category"] = "renewal"
             else:
                 rec["category"] = "new_application"
         else:
-            # Check if it was a state-approved record (always highlight these)
-            if rec.get("source") == "state_approved":
-                rec["category"] = "new_application"
-            else:
-                rec["category"] = "active"
+            rec["category"] = "active"
 
     return records
 
 # ---------------------------------------------------------------------------
-# Chart data computation
+# Chart history (daily accumulation)
 # ---------------------------------------------------------------------------
 
-def compute_chart_data(records):
+def update_chart_history(records):
     """
-    Compute monthly new licenses and delinquencies for current year and prior year.
-    Uses issue_date for new licenses, expiration_date as proxy for delinquency timing.
+    Append today's snapshot counts to chart-history.json.
+    Accumulates daily so we have real historical data.
     """
-    now = datetime.now(timezone.utc)
-    current_year = now.year
-    prior_year = current_year - 1
-    current_month = now.month
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
-    # Monthly counts
-    new_by_month = defaultdict(int)       # {(year, month): count}
-    delinq_by_month = defaultdict(int)    # {(year, month): count}
+    history = {}
+    if os.path.exists(CHART_HISTORY_FILE):
+        try:
+            with open(CHART_HISTORY_FILE, "r") as f:
+                history = json.load(f)
+        except Exception as e:
+            print(f"  Warning: Could not load chart history: {e}")
 
-    for rec in records:
-        status = (rec.get("status") or "").upper()
-        issue_str = rec.get("issue_date")
-        exp_str = rec.get("expiration_date")
+    if "daily" not in history:
+        history["daily"] = {}
 
-        # Count new licenses by issue_date
-        if issue_str and ("CLOSED" not in status):
-            try:
-                dt = datetime.fromisoformat(issue_str)
-                if dt.year in (current_year, prior_year):
-                    new_by_month[(dt.year, dt.month)] += 1
-            except (ValueError, TypeError):
-                pass
+    new_apps = sum(1 for r in records if r.get("category") == "new_application")
+    delinquencies = sum(1 for r in records if r.get("category") == "delinquent")
 
-        # Count delinquencies by expiration_date as proxy
-        if "DELINQUENT" in status and exp_str:
-            try:
-                dt = datetime.fromisoformat(exp_str)
-                if dt.year in (current_year, prior_year):
-                    delinq_by_month[(dt.year, dt.month)] += 1
-            except (ValueError, TypeError):
-                pass
-
-    # Build monthly arrays for Jan-Dec
-    months = list(range(1, 13))
-    chart = {
-        "current_year": current_year,
-        "prior_year": prior_year,
-        "current_month": current_month,
-        "months": ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
-        "new_licenses_current": [new_by_month.get((current_year, m), 0) for m in months],
-        "new_licenses_prior": [new_by_month.get((prior_year, m), 0) for m in months],
-        "delinquencies_current": [delinq_by_month.get((current_year, m), 0) for m in months],
-        "delinquencies_prior": [delinq_by_month.get((prior_year, m), 0) for m in months],
+    history["daily"][today] = {
+        "new_applications": new_apps,
+        "delinquencies": delinquencies,
+        "total": len(records),
     }
 
-    # Compute cumulative arrays
-    def cumulative(arr, max_month=12):
-        result = []
-        total = 0
-        for i, v in enumerate(arr):
-            if i < max_month:
-                total += v
-                result.append(total)
-            else:
-                result.append(None)
-        return result
+    os.makedirs("data", exist_ok=True)
+    with open(CHART_HISTORY_FILE, "w") as f:
+        json.dump(history, f, separators=(",", ":"))
 
-    chart["cumulative_new_current"] = cumulative(chart["new_licenses_current"], current_month)
-    chart["cumulative_new_prior"] = cumulative(chart["new_licenses_prior"])
-    chart["cumulative_delinq_current"] = cumulative(chart["delinquencies_current"], current_month)
-    chart["cumulative_delinq_prior"] = cumulative(chart["delinquencies_prior"])
-
-    return chart
+    print(f"  Chart history updated for {today}: {new_apps} new apps, {delinquencies} delinquent")
+    return history
 
 # ---------------------------------------------------------------------------
 # Restaurant Tracker cross-reference
 # ---------------------------------------------------------------------------
 
 def cross_reference_rt(records):
-    """Cross-reference records against the BusinessDen restaurant tracker."""
     print("Fetching restaurant tracker data...")
     try:
         rt_data = fetch_json(RT_URL)
@@ -438,7 +360,6 @@ def cross_reference_rt(records):
     rt_records = rt_data["records"]
     print(f"  Loaded {len(rt_records)} restaurant tracker records")
 
-    # Build address index
     rt_by_addr = {}
     rt_by_coords = []
     for rt in rt_records:
@@ -452,11 +373,8 @@ def cross_reference_rt(records):
 
     matched = 0
     for rec in records:
-        # Try address match first
         addr = normalize_addr(rec.get("address", ""))
         rt = rt_by_addr.get(addr)
-
-        # Fall back to proximity match
         if not rt and rec.get("lat") and rec.get("lng"):
             min_dist = float("inf")
             closest = None
@@ -467,7 +385,6 @@ def cross_reference_rt(records):
                     closest = rrt
             if min_dist <= 50:
                 rt = closest
-
         if rt:
             rec["rt_match"] = {
                 "name": rt.get("name", ""),
@@ -489,7 +406,6 @@ def cross_reference_rt(records):
 # ---------------------------------------------------------------------------
 
 def compute_diff(current_records, previous_records):
-    """Compute new, removed, and status-changed records."""
     if not previous_records:
         return {
             "new_count": 0, "removed_count": 0, "status_changes_count": 0,
@@ -500,42 +416,30 @@ def compute_diff(current_records, previous_records):
     prev_by_id = {r["id"]: r for r in previous_records}
     curr_by_id = {r["id"]: r for r in current_records}
 
-    new_records = []
-    for rid, rec in curr_by_id.items():
-        if rid not in prev_by_id:
-            new_records.append({
-                "id": rid, "name": rec.get("name", ""),
-                "address": rec.get("address", ""), "status": rec.get("status", ""),
-                "license_type": rec.get("license_type", ""),
-                "category": rec.get("category", "")
-            })
-
-    removed = []
-    for rid, rec in prev_by_id.items():
-        if rid not in curr_by_id:
-            removed.append({
-                "id": rid, "name": rec.get("name", ""),
-                "address": rec.get("address", ""), "status": rec.get("status", "")
-            })
-
-    status_changes = []
-    for rid in curr_by_id:
-        if rid in prev_by_id:
-            if curr_by_id[rid].get("status") != prev_by_id[rid].get("status"):
-                status_changes.append({
-                    "id": rid, "name": curr_by_id[rid].get("name", ""),
-                    "address": curr_by_id[rid].get("address", ""),
-                    "old_status": prev_by_id[rid].get("status", ""),
-                    "new_status": curr_by_id[rid].get("status", "")
-                })
+    new_records = [
+        {"id": rid, "name": rec.get("name", ""), "address": rec.get("address", ""),
+         "status": rec.get("status", ""), "license_type": rec.get("license_type", ""),
+         "category": rec.get("category", "")}
+        for rid, rec in curr_by_id.items() if rid not in prev_by_id
+    ]
+    removed = [
+        {"id": rid, "name": rec.get("name", ""), "address": rec.get("address", ""),
+         "status": rec.get("status", "")}
+        for rid, rec in prev_by_id.items() if rid not in curr_by_id
+    ]
+    status_changes = [
+        {"id": rid, "name": curr_by_id[rid].get("name", ""),
+         "address": curr_by_id[rid].get("address", ""),
+         "old_status": prev_by_id[rid].get("status", ""),
+         "new_status": curr_by_id[rid].get("status", "")}
+        for rid in curr_by_id if rid in prev_by_id
+        and curr_by_id[rid].get("status") != prev_by_id[rid].get("status")
+    ]
 
     return {
-        "new_count": len(new_records),
-        "removed_count": len(removed),
+        "new_count": len(new_records), "removed_count": len(removed),
         "status_changes_count": len(status_changes),
-        "new": new_records,
-        "removed": removed,
-        "status_changes": status_changes,
+        "new": new_records, "removed": removed, "status_changes": status_changes,
         "timestamp": datetime.now(timezone.utc).isoformat()
     }
 
@@ -551,12 +455,9 @@ def main():
     all_records = []
     source_counts = {}
 
-    # --- 1. Denver ArcGIS ---
+    # 1. Denver ArcGIS (non-special-events)
     print("\n1. Fetching Denver ArcGIS licenses (non-special-events)...")
-    arcgis_features = fetch_arcgis(
-        where="LICENSES NOT LIKE '%SPECIAL%'",
-        fields="*"
-    )
+    arcgis_features = fetch_arcgis(where="LICENSES NOT LIKE '%SPECIAL%'", fields="*")
     print(f"  Raw ArcGIS records: {len(arcgis_features)}")
 
     denver_records = []
@@ -573,23 +474,21 @@ def main():
     source_counts["denver_arcgis"] = len(denver_records)
     print(f"  Normalized: {len(denver_records)} Denver records")
 
-    # --- 2. State recently approved ---
+    # 2. State recently approved (metro cities only — no type filter)
     print("\n2. Fetching state recently approved licenses...")
     city_filter = " OR ".join([f"city='{c}'" for c in METRO_CITIES])
-    type_filter = " OR ".join([f"license_type='{t}'" for t in NEWSWORTHY_TYPES])
-    where = f"({city_filter}) AND ({type_filter})"
+    where_cities = f"({city_filter})"
 
-    approved_raw = fetch_socrata(APPROVED_DATASET, where)
+    approved_raw = fetch_socrata(APPROVED_DATASET, where_cities)
     print(f"  Raw approved records: {len(approved_raw)}")
-
     approved_records = [normalize_socrata_record(r, "state_approved") for r in approved_raw]
     all_records.extend(approved_records)
     source_counts["state_approved"] = len(approved_records)
     print(f"  Normalized: {len(approved_records)} approved records")
 
-    # --- 3. State active licenses (dedup against Denver) ---
+    # 3. State active licenses (metro cities only — no type filter, dedup vs Denver)
     print("\n3. Fetching state active licenses...")
-    active_raw = fetch_socrata(ACTIVE_DATASET, where)
+    active_raw = fetch_socrata(ACTIVE_DATASET, where_cities)
     print(f"  Raw active records: {len(active_raw)}")
 
     active_records = []
@@ -602,14 +501,13 @@ def main():
     all_records.extend(active_records)
     source_counts["state_active"] = len(active_records)
     print(f"  After dedup: {len(active_records)} state active records")
-
     print(f"\nTotal records: {len(all_records)}")
 
-    # --- 4. Cross-reference with restaurant tracker ---
+    # 4. Cross-reference with restaurant tracker
     print("\n4. Cross-referencing with restaurant tracker...")
     all_records = cross_reference_rt(all_records)
 
-    # --- 5. Load previous data and classify ---
+    # 5. Load previous data and classify
     print("\n5. Classifying records (new vs renewal)...")
     previous_records = []
     if os.path.exists(PREVIOUS_FILE):
@@ -623,19 +521,18 @@ def main():
 
     all_records = classify_records(all_records, previous_records)
 
-    # Count categories
     cat_counts = defaultdict(int)
     for rec in all_records:
         cat_counts[rec.get("category", "unknown")] += 1
     print(f"  Categories: {dict(cat_counts)}")
 
-    # --- 6. Compute diff ---
+    # 6. Compute diff
     print("\n6. Computing diff...")
     diff = compute_diff(all_records, previous_records)
     print(f"  New: {diff['new_count']}, Removed: {diff['removed_count']}, "
           f"Status changes: {diff['status_changes_count']}")
 
-    # --- 7. Compute summary stats ---
+    # 7. Summary stats
     print("\n7. Computing summary stats...")
     summary = {
         "by_status": defaultdict(int),
@@ -651,17 +548,13 @@ def main():
             summary["by_neighborhood"][rec["neighborhood"]] += 1
         summary["by_city"][rec.get("city", "Unknown")] += 1
         summary["by_category"][rec.get("category", "unknown")] += 1
-
-    # Convert defaultdicts to regular dicts for JSON
     summary = {k: dict(v) for k, v in summary.items()}
 
-    # --- 8. Compute chart data ---
-    print("\n8. Computing chart data...")
-    chart_data = compute_chart_data(all_records)
-    print(f"  Current year: {chart_data['current_year']}, "
-          f"Prior year: {chart_data['prior_year']}")
+    # 8. Update chart history
+    print("\n8. Updating chart history...")
+    chart_history = update_chart_history(all_records)
 
-    # --- 9. Write output ---
+    # 9. Write output
     print("\n9. Writing output files...")
     output = {
         "metadata": {
@@ -670,7 +563,7 @@ def main():
             "sources": source_counts,
         },
         "summary": summary,
-        "chart": chart_data,
+        "chart_history": chart_history,
         "diff": diff,
         "records": all_records,
     }
@@ -679,7 +572,6 @@ def main():
         json.dump(output, f, separators=(",", ":"))
     print(f"  Wrote {OUTPUT_FILE} ({os.path.getsize(OUTPUT_FILE) / 1024 / 1024:.1f} MB)")
 
-    # Save current as previous
     os.makedirs("data", exist_ok=True)
     with open(PREVIOUS_FILE, "w") as f:
         json.dump({"records": all_records}, f, separators=(",", ":"))

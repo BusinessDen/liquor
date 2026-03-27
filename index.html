@@ -33,27 +33,21 @@
     --font: 'Outfit', sans-serif;
     --mono: 'JetBrains Mono', monospace;
   }
-
   * { margin: 0; padding: 0; box-sizing: border-box; }
-
   body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--font);
-    font-size: 15px;
-    line-height: 1.5;
+    background: var(--bg); color: var(--text);
+    font-family: var(--font); font-size: 15px; line-height: 1.5;
     overflow-x: hidden;
   }
 
-  /* ---- Auth ---- */
+  /* Auth */
   #auth-overlay {
-    position: fixed; inset: 0; z-index: 9999;
-    background: var(--bg);
+    position: fixed; inset: 0; z-index: 9999; background: var(--bg);
     display: flex; align-items: center; justify-content: center;
     flex-direction: column; gap: 16px;
   }
   #auth-overlay.hidden { display: none; }
-  #auth-overlay h1 { font-size: 24px; font-weight: 600; letter-spacing: -0.5px; }
+  #auth-overlay h1 { font-size: 24px; font-weight: 600; }
   #auth-overlay input {
     background: var(--surface2); border: 1px solid var(--border);
     color: var(--text); padding: 10px 16px; border-radius: var(--radius);
@@ -67,7 +61,7 @@
     cursor: pointer; font-weight: 500;
   }
 
-  /* ---- Layout ---- */
+  /* Layout */
   #app { display: none; }
   #app.visible { display: block; }
 
@@ -82,21 +76,20 @@
   }
   header .meta { font-size: 13px; color: var(--text-dim); font-family: var(--mono); }
 
-  /* ---- KPI Cards ---- */
+  /* KPI Cards — sticky */
   .kpi-row {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 10px; padding: 16px 24px;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px; padding: 12px 24px;
+    position: sticky; top: 0; z-index: 700;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
   }
   .kpi-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 14px 16px;
-    cursor: pointer;
-    transition: all 0.2s;
-    position: relative;
-    overflow: hidden;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 12px 14px;
+    cursor: pointer; transition: all 0.2s; position: relative; overflow: hidden;
+    text-align: center;
   }
   .kpi-card:hover { border-color: var(--text-muted); transform: translateY(-1px); }
   .kpi-card.active { border-color: var(--blue); background: var(--surface2); }
@@ -104,18 +97,15 @@
     content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
     background: var(--blue);
   }
-  .kpi-card .kpi-label {
+  .kpi-label {
     font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px;
-    color: var(--text-dim); font-weight: 500; margin-bottom: 4px;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    color: var(--text-dim); font-weight: 500; margin-bottom: 2px;
   }
-  .kpi-card .kpi-value {
-    font-size: 28px; font-weight: 700; font-family: var(--mono);
-    line-height: 1.1;
+  .kpi-value {
+    font-size: 28px; font-weight: 700; font-family: var(--mono); line-height: 1.1;
   }
-  .kpi-card .kpi-sub {
-    font-size: 11px; color: var(--text-muted); margin-top: 2px;
-    font-family: var(--mono);
+  .kpi-sub {
+    font-size: 11px; color: var(--text-muted); margin-top: 2px; font-family: var(--mono);
   }
   .kpi-card[data-filter="new_application"] .kpi-value { color: var(--green); }
   .kpi-card[data-filter="approved"] .kpi-value { color: var(--amber); }
@@ -123,54 +113,47 @@
   .kpi-card[data-filter="delinquent"] .kpi-value { color: var(--red); }
   .kpi-card[data-filter="rt_match"] .kpi-value { color: var(--blue); }
 
-  /* ---- Diff Panel ---- */
+  /* Diff Panel */
   .diff-panel {
-    margin: 0 24px 12px; background: var(--surface);
-    border: 1px solid var(--border); border-radius: var(--radius);
-    overflow: hidden;
+    margin: 12px 24px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden;
   }
   .diff-panel.hidden { display: none; }
   .diff-header {
     padding: 10px 16px; cursor: pointer; display: flex;
-    align-items: center; gap: 8px; font-weight: 500;
-    font-size: 14px;
+    align-items: center; gap: 8px; font-weight: 500; font-size: 14px;
   }
   .diff-header .badge {
     background: var(--amber); color: #000; padding: 2px 8px;
-    border-radius: 20px; font-size: 11px; font-weight: 600;
-    font-family: var(--mono);
+    border-radius: 20px; font-size: 11px; font-weight: 600; font-family: var(--mono);
   }
   .diff-body { padding: 0 16px 12px; font-size: 13px; display: none; }
   .diff-body.open { display: block; }
-  .diff-item {
-    padding: 4px 0; border-bottom: 1px solid var(--border);
-    display: flex; gap: 8px; align-items: baseline;
-  }
+  .diff-item { padding: 4px 0; border-bottom: 1px solid var(--border); display: flex; gap: 8px; align-items: baseline; }
   .diff-item:last-child { border-bottom: none; }
-  .diff-tag {
-    font-size: 10px; text-transform: uppercase; font-weight: 600;
-    padding: 1px 6px; border-radius: 4px; font-family: var(--mono);
-  }
+  .diff-tag { font-size: 10px; text-transform: uppercase; font-weight: 600; padding: 1px 6px; border-radius: 4px; font-family: var(--mono); }
   .diff-tag.new { background: rgba(34,197,94,0.2); color: var(--green); }
   .diff-tag.removed { background: rgba(239,68,68,0.2); color: var(--red); }
   .diff-tag.changed { background: rgba(245,166,35,0.2); color: var(--amber); }
 
-  /* ---- Chart Section ---- */
+  /* Chart */
   .chart-section {
     margin: 0 24px 16px; background: var(--surface);
-    border: 1px solid var(--border); border-radius: var(--radius);
-    padding: 16px;
+    border: 1px solid var(--border); border-radius: var(--radius); padding: 16px;
   }
   .chart-section h2 {
     font-size: 14px; font-weight: 600; margin-bottom: 12px;
     color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px;
   }
-  .chart-wrap { position: relative; height: 280px; }
+  .chart-wrap { position: relative; height: 300px; }
+  .chart-empty {
+    display: flex; align-items: center; justify-content: center;
+    height: 200px; color: var(--text-muted); font-size: 14px;
+  }
 
-  /* ---- Filter Bar ---- */
+  /* Filter Bar */
   .filter-bar {
-    display: flex; gap: 8px; padding: 0 24px 12px; flex-wrap: wrap;
-    align-items: center;
+    display: flex; gap: 8px; padding: 0 24px 12px; flex-wrap: wrap; align-items: center;
   }
   .filter-bar input, .filter-bar select {
     background: var(--surface2); border: 1px solid var(--border);
@@ -186,103 +169,70 @@
     font-family: var(--font); font-size: 13px; cursor: pointer;
   }
   .btn-reset:hover { border-color: var(--text-muted); color: var(--text); }
-  .btn-newsworthy {
-    background: rgba(245,166,35,0.15); border: 1px solid var(--amber);
-    color: var(--amber); padding: 8px 14px; border-radius: 20px;
-    font-family: var(--font); font-size: 13px; cursor: pointer; font-weight: 500;
-  }
-  .btn-newsworthy.active { background: var(--amber); color: #000; }
 
-  /* ---- Map ---- */
+  /* Map */
   .map-section { margin: 0 24px 16px; position: relative; }
-  #map {
-    height: 500px; border-radius: var(--radius);
-    border: 1px solid var(--border);
-  }
-  /* Improve tile contrast */
+  #map { height: 500px; border-radius: var(--radius); border: 1px solid var(--border); }
   .leaflet-tile-pane { filter: brightness(1.45) contrast(1.15) saturate(1.3); }
   .leaflet-control-zoom a {
     background: var(--surface) !important; color: var(--text) !important;
     border-color: var(--border) !important;
   }
-
-  /* Donut cluster styles */
-  .donut-cluster {
-    background: none !important; border: none !important;
-    display: flex; align-items: center; justify-content: center;
+  .scroll-hint {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    z-index: 600; background: rgba(0,0,0,0.75); color: var(--text);
+    padding: 8px 16px; border-radius: 8px; font-size: 13px;
+    pointer-events: none; opacity: 0; transition: opacity 0.3s;
   }
+  .scroll-hint.show { opacity: 1; }
+  .donut-cluster { background: none !important; border: none !important; display: flex; align-items: center; justify-content: center; }
 
   /* Legend */
   .map-legend {
     position: absolute; bottom: 16px; right: 16px; z-index: 600;
     background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 10px 14px;
-    font-size: 12px;
+    border-radius: var(--radius); padding: 10px 14px; font-size: 12px;
   }
   .map-legend h4 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-dim); margin-bottom: 6px; }
   .legend-item { display: flex; align-items: center; gap: 6px; margin: 3px 0; }
   .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 
-  /* ---- License List ---- */
+  /* License List */
   .list-section {
     margin: 0 24px 24px; background: var(--surface);
-    border: 1px solid var(--border); border-radius: var(--radius);
-    overflow: hidden;
+    border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden;
   }
   .list-header {
     padding: 12px 16px; display: flex; align-items: center;
     justify-content: space-between; border-bottom: 1px solid var(--border);
   }
-  .list-header h2 {
-    font-size: 14px; font-weight: 600; color: var(--text-dim);
-    text-transform: uppercase; letter-spacing: 0.5px;
-  }
-  .list-header .count {
-    font-family: var(--mono); font-size: 13px; color: var(--text-muted);
-  }
-  .list-table-wrap { overflow-x: auto; }
-  .list-table {
-    width: 100%; border-collapse: collapse; font-size: 13px;
-  }
+  .list-header h2 { font-size: 14px; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
+  .list-header .count { font-family: var(--mono); font-size: 13px; color: var(--text-muted); }
+  .list-table-wrap { overflow-x: auto; max-height: 520px; overflow-y: auto; }
+  .list-table { width: 100%; border-collapse: collapse; font-size: 13px; }
   .list-table thead th {
     padding: 8px 12px; text-align: left; font-weight: 500;
     color: var(--text-dim); font-size: 11px; text-transform: uppercase;
     letter-spacing: 0.5px; border-bottom: 1px solid var(--border);
     cursor: pointer; white-space: nowrap; user-select: none;
-    position: sticky; top: 0; background: var(--surface);
+    position: sticky; top: 0; background: var(--surface); z-index: 2;
   }
   .list-table thead th:hover { color: var(--text); }
   .list-table thead th .sort-arrow { margin-left: 4px; opacity: 0.4; }
   .list-table thead th.sorted .sort-arrow { opacity: 1; color: var(--blue); }
-  .list-table tbody tr {
-    border-bottom: 1px solid var(--border);
-    transition: background 0.15s;
-  }
+  .list-table tbody tr { border-bottom: 1px solid var(--border); transition: background 0.15s; }
   .list-table tbody tr:hover { background: var(--surface2); }
-  .list-table tbody td {
-    padding: 8px 12px; white-space: nowrap; max-width: 240px;
-    overflow: hidden; text-overflow: ellipsis;
-  }
-  .list-table .name-link {
-    color: var(--blue); cursor: pointer; text-decoration: none;
-  }
+  .list-table tbody td { padding: 8px 12px; white-space: nowrap; max-width: 240px; overflow: hidden; text-overflow: ellipsis; }
+  .list-table .name-link { color: var(--blue); cursor: pointer; text-decoration: none; }
   .list-table .name-link:hover { text-decoration: underline; }
-  .list-table .cat-badge {
-    display: inline-block; padding: 2px 8px; border-radius: 4px;
-    font-size: 10px; text-transform: uppercase; font-weight: 600;
-    font-family: var(--mono); letter-spacing: 0.3px;
-  }
+  .cat-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; text-transform: uppercase; font-weight: 600; font-family: var(--mono); letter-spacing: 0.3px; }
   .cat-new { background: rgba(34,197,94,0.15); color: var(--green); }
-  .cat-renewal { background: rgba(107,114,128,0.2); color: var(--gray); }
-  .cat-active { background: rgba(59,130,246,0.15); color: var(--blue); }
   .cat-pending { background: rgba(245,166,35,0.15); color: var(--amber); }
   .cat-delinquent { background: rgba(239,68,68,0.15); color: var(--red); }
+  .cat-active { background: rgba(59,130,246,0.15); color: var(--blue); }
+  .cat-renewal { background: rgba(107,114,128,0.2); color: var(--gray); }
   .cat-closed { background: rgba(55,65,81,0.3); color: var(--text-muted); }
-
-  .rt-badge {
-    display: inline-flex; align-items: center; gap: 3px;
-    color: var(--blue); font-size: 13px; cursor: help;
-  }
+  .rt-badge { display: inline-flex; align-items: center; gap: 3px; color: var(--blue); font-size: 13px; cursor: help; }
 
   /* Pagination */
   .list-pagination {
@@ -298,7 +248,7 @@
   .list-pagination button:disabled { opacity: 0.3; cursor: default; }
   .list-pagination .page-info { font-size: 12px; color: var(--text-muted); font-family: var(--mono); }
 
-  /* ---- Detail Modal ---- */
+  /* Modal */
   .modal-overlay {
     position: fixed; inset: 0; z-index: 8000;
     background: rgba(0,0,0,0.7); display: none;
@@ -317,50 +267,28 @@
   }
   .modal-close:hover { color: var(--text); }
   .modal-body { padding: 20px; }
-  .modal-body h2 {
-    font-size: 18px; font-weight: 700; margin-bottom: 4px;
-    padding-right: 32px;
-  }
-  .modal-body .modal-dba { font-size: 13px; color: var(--text-dim); margin-bottom: 12px; }
-  .modal-section {
-    margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border);
-  }
-  .modal-section h3 {
-    font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;
-    color: var(--text-dim); margin-bottom: 8px; font-weight: 500;
-  }
-  .modal-grid {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
-  }
-  .modal-field label {
-    display: block; font-size: 10px; text-transform: uppercase;
-    color: var(--text-muted); letter-spacing: 0.3px; margin-bottom: 2px;
-  }
-  .modal-field span {
-    font-size: 14px; font-family: var(--mono); color: var(--text);
-  }
-  .modal-field a {
-    color: var(--blue); text-decoration: none; font-size: 13px;
-  }
-  .modal-field a:hover { text-decoration: underline; }
+  .modal-body h2 { font-size: 18px; font-weight: 700; margin-bottom: 4px; padding-right: 32px; }
+  .modal-dba { font-size: 13px; color: var(--text-dim); margin-bottom: 12px; }
+  .modal-section { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+  .modal-section h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-dim); margin-bottom: 8px; font-weight: 500; }
+  .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .modal-field label { display: block; font-size: 10px; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.3px; margin-bottom: 2px; }
+  .modal-field span { font-size: 14px; font-family: var(--mono); color: var(--text); }
+  .modal-links { display: flex; gap: 10px; margin-top: 12px; }
+  .modal-links a { display: inline-flex; align-items: center; gap: 4px; color: var(--blue); font-size: 13px; text-decoration: none; }
+  .modal-links a:hover { text-decoration: underline; }
   .modal-rt {
     background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.25);
     border-radius: 8px; padding: 12px; margin-top: 14px;
   }
   .modal-rt h3 { color: var(--blue); margin-bottom: 8px; }
-  .modal-links { display: flex; gap: 10px; margin-top: 12px; }
-  .modal-links a {
-    display: inline-flex; align-items: center; gap: 4px;
-    color: var(--blue); font-size: 13px; text-decoration: none;
-  }
-  .modal-links a:hover { text-decoration: underline; }
 
-  /* ---- Scrollbar ---- */
+  /* Scrollbar */
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: var(--surface); }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
-  /* ---- Leaflet popup ---- */
+  /* Leaflet popups */
   .leaflet-popup-content-wrapper {
     background: var(--surface) !important; color: var(--text) !important;
     border-radius: var(--radius) !important; border: 1px solid var(--border);
@@ -372,7 +300,6 @@
 </head>
 <body>
 
-<!-- Auth Overlay -->
 <div id="auth-overlay">
   <h1>🍸 Liquor License Tracker</h1>
   <input type="password" id="auth-pw" placeholder="Password" autofocus>
@@ -380,17 +307,14 @@
   <button onclick="checkAuth()">Enter</button>
 </div>
 
-<!-- App -->
 <div id="app">
   <header>
     <h1>🍸 Liquor License Tracker</h1>
     <span class="meta" id="meta-info"></span>
   </header>
 
-  <!-- KPI Cards -->
   <div class="kpi-row" id="kpi-row"></div>
 
-  <!-- Diff Panel -->
   <div class="diff-panel hidden" id="diff-panel">
     <div class="diff-header" onclick="toggleDiff()">
       <span>⚡ What's Changed</span>
@@ -399,48 +323,40 @@
     <div class="diff-body" id="diff-body"></div>
   </div>
 
-  <!-- Chart -->
   <div class="chart-section">
-    <h2>New Licenses & Delinquencies — <span id="chart-year"></span></h2>
-    <div class="chart-wrap">
+    <h2>New Licenses & Delinquencies — <span id="chart-year">YTD</span></h2>
+    <div class="chart-wrap" id="chart-wrap">
       <canvas id="main-chart"></canvas>
     </div>
   </div>
 
-  <!-- Filter Bar -->
   <div class="filter-bar">
     <input type="text" id="f-search" placeholder="Search name, address, license type...">
-    <select id="f-status"><option value="">All Statuses</option></select>
     <select id="f-city"><option value="">All Cities</option></select>
     <select id="f-neighborhood"><option value="">All Neighborhoods</option></select>
-    <button class="btn-newsworthy" id="btn-newsworthy" onclick="toggleNewsworthy()">Newsworthy</button>
     <button class="btn-reset" onclick="resetFilters()">Reset</button>
   </div>
 
-  <!-- Map -->
   <div class="map-section">
     <div id="map"></div>
+    <div class="scroll-hint" id="scroll-hint">Hold <b>Shift</b> + scroll to zoom</div>
     <div class="map-legend">
-      <h4>License Category</h4>
+      <h4>Category</h4>
       <div class="legend-item"><span class="legend-dot" style="background:#22c55e"></span> New Application</div>
-      <div class="legend-item"><span class="legend-dot" style="background:#f5a623"></span> Pending</div>
       <div class="legend-item"><span class="legend-dot" style="background:#ef4444"></span> Delinquent</div>
-      <div class="legend-item"><span class="legend-dot" style="background:#3b82f6"></span> Active</div>
-      <div class="legend-item"><span class="legend-dot" style="background:#6b7280"></span> Renewal</div>
-      <div class="legend-item"><span class="legend-dot" style="background:#374151"></span> Closed</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#f5a623"></span> Pending</div>
       <div class="legend-item" style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border)">
         <span class="legend-dot" style="border:2px solid #3b82f6;background:transparent"></span> RT Match
       </div>
     </div>
   </div>
 
-  <!-- License List -->
   <div class="list-section">
     <div class="list-header">
       <h2>License Records</h2>
       <span class="count" id="list-count">0 records</span>
     </div>
-    <div class="list-table-wrap" style="max-height:500px;overflow-y:auto;">
+    <div class="list-table-wrap">
       <table class="list-table">
         <thead id="list-thead"></thead>
         <tbody id="list-tbody"></tbody>
@@ -450,7 +366,6 @@
   </div>
 </div>
 
-<!-- Detail Modal -->
 <div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeModal()">
   <div class="modal">
     <button class="modal-close" onclick="closeModal()">✕</button>
@@ -464,8 +379,7 @@ const AUTH_PW = 'BizDenScoops!';
 const AUTH_KEY = 'liquor_tracker_auth';
 
 function checkAuth() {
-  const pw = document.getElementById('auth-pw').value;
-  if (pw === AUTH_PW) {
+  if (document.getElementById('auth-pw').value === AUTH_PW) {
     localStorage.setItem(AUTH_KEY, Date.now().toString());
     document.getElementById('auth-overlay').classList.add('hidden');
     document.getElementById('app').classList.add('visible');
@@ -474,12 +388,8 @@ function checkAuth() {
     document.getElementById('auth-error').textContent = 'Incorrect password';
   }
 }
+document.getElementById('auth-pw').addEventListener('keydown', e => { if (e.key === 'Enter') checkAuth(); });
 
-document.getElementById('auth-pw').addEventListener('keydown', e => {
-  if (e.key === 'Enter') checkAuth();
-});
-
-// Check stored auth (30-day session)
 (function() {
   const stored = localStorage.getItem(AUTH_KEY);
   if (stored && Date.now() - parseInt(stored) < 30 * 24 * 60 * 60 * 1000) {
@@ -491,9 +401,9 @@ document.getElementById('auth-pw').addEventListener('keydown', e => {
 
 // ===== GLOBALS =====
 let DATA = null;
+let allDisplayRecords = [];  // Only new_application + delinquent + pending
 let filteredRecords = [];
 let activeKPI = null;
-let newsworthyActive = false;
 let sortCol = null;
 let sortAsc = true;
 let listPage = 0;
@@ -509,7 +419,6 @@ const CATEGORY_COLORS = {
   closed: '#374151',
   unknown: '#374151'
 };
-
 const CATEGORY_LABELS = {
   new_application: 'New',
   pending: 'Pending',
@@ -520,7 +429,8 @@ const CATEGORY_LABELS = {
   unknown: 'Unknown'
 };
 
-const NEWSWORTHY_CATEGORIES = ['new_application', 'pending', 'delinquent'];
+// Only these categories are displayed
+const DISPLAY_CATEGORIES = ['new_application', 'delinquent', 'pending'];
 
 // ===== INIT =====
 async function initApp() {
@@ -532,8 +442,11 @@ async function initApp() {
     return;
   }
 
+  // Filter to only newsworthy categories for display
+  allDisplayRecords = DATA.records.filter(r => DISPLAY_CATEGORIES.includes(r.category));
+
   document.getElementById('meta-info').textContent =
-    `${DATA.metadata.total_records.toLocaleString()} records • Updated ${new Date(DATA.metadata.generated).toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'})}`;
+    `${DATA.metadata.total_records.toLocaleString()} total licenses tracked • ${allDisplayRecords.length.toLocaleString()} newsworthy • Updated ${new Date(DATA.metadata.generated).toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'})}`;
 
   buildKPIs();
   buildDiffPanel();
@@ -542,16 +455,12 @@ async function initApp() {
   initMap();
   applyFilters();
 
-  // Filter event listeners
   document.getElementById('f-search').addEventListener('input', debounce(applyFilters, 200));
-  document.getElementById('f-status').addEventListener('change', applyFilters);
   document.getElementById('f-city').addEventListener('change', applyFilters);
   document.getElementById('f-neighborhood').addEventListener('change', applyFilters);
 }
 
-function debounce(fn, ms) {
-  let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
-}
+function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
 
 // ===== KPI CARDS =====
 function buildKPIs() {
@@ -559,7 +468,6 @@ function buildKPIs() {
   const now = new Date();
   const thirtyDaysAgo = new Date(now - 30 * 24 * 60 * 60 * 1000);
 
-  const total = records.length;
   const newApps = records.filter(r => r.category === 'new_application').length;
   const approved30 = records.filter(r => {
     if (r.source !== 'state_approved') return false;
@@ -568,48 +476,39 @@ function buildKPIs() {
   }).length;
   const pending = records.filter(r => r.category === 'pending').length;
   const delinquent = records.filter(r => r.category === 'delinquent').length;
-  const rtMatches = records.filter(r => r.rt_match).length;
+  const rtMatches = allDisplayRecords.filter(r => r.rt_match).length;
 
   const kpis = [
-    { label: 'Total Records', value: total, filter: 'all', sub: '' },
     { label: 'New Applications', value: newApps, filter: 'new_application', sub: 'Last 12 months' },
     { label: 'Recently Approved', value: approved30, filter: 'approved', sub: 'Last 30 days' },
-    { label: 'Pending', value: pending, filter: 'pending', sub: 'In progress' },
+    { label: 'Pending', value: pending, filter: 'pending', sub: 'Awaiting approval' },
     { label: 'Delinquent', value: delinquent, filter: 'delinquent', sub: 'Behind on fees' },
     { label: 'RT Matches', value: rtMatches, filter: 'rt_match', sub: 'In restaurant tracker' },
   ];
 
-  const row = document.getElementById('kpi-row');
-  row.innerHTML = kpis.map(k => `
+  document.getElementById('kpi-row').innerHTML = kpis.map(k => `
     <div class="kpi-card" data-filter="${k.filter}" onclick="toggleKPI('${k.filter}')">
       <div class="kpi-label">${k.label}</div>
       <div class="kpi-value">${k.value.toLocaleString()}</div>
-      ${k.sub ? `<div class="kpi-sub">${k.sub}</div>` : ''}
+      <div class="kpi-sub">${k.sub}</div>
     </div>
   `).join('');
 }
 
 function toggleKPI(filter) {
-  if (activeKPI === filter) {
-    activeKPI = null;
-  } else {
-    activeKPI = filter;
-  }
-  document.querySelectorAll('.kpi-card').forEach(card => {
-    card.classList.toggle('active', card.dataset.filter === activeKPI);
-  });
+  activeKPI = activeKPI === filter ? null : filter;
+  document.querySelectorAll('.kpi-card').forEach(c => c.classList.toggle('active', c.dataset.filter === activeKPI));
   applyFilters();
 }
 
-// ===== DIFF PANEL =====
+// ===== DIFF =====
 function buildDiffPanel() {
   const diff = DATA.diff;
-  const totalChanges = diff.new_count + diff.removed_count + diff.status_changes_count;
-  if (totalChanges === 0) return;
+  const total = diff.new_count + diff.removed_count + diff.status_changes_count;
+  if (total === 0) return;
 
-  const panel = document.getElementById('diff-panel');
-  panel.classList.remove('hidden');
-  document.getElementById('diff-badge').textContent = totalChanges;
+  document.getElementById('diff-panel').classList.remove('hidden');
+  document.getElementById('diff-badge').textContent = total;
 
   let html = '';
   diff.new.slice(0, 20).forEach(r => {
@@ -624,100 +523,101 @@ function buildDiffPanel() {
   document.getElementById('diff-body').innerHTML = html;
 }
 
-function toggleDiff() {
-  document.getElementById('diff-body').classList.toggle('open');
-}
+function toggleDiff() { document.getElementById('diff-body').classList.toggle('open'); }
 
-// ===== CHART =====
+// ===== CHART (daily bars) =====
 function buildChart() {
-  const chart = DATA.chart;
-  if (!chart) return;
+  const history = DATA.chart_history;
+  if (!history || !history.daily || Object.keys(history.daily).length < 2) {
+    document.getElementById('chart-wrap').innerHTML =
+      '<div class="chart-empty">Chart data accumulates daily. Check back after a few days of scraper runs.</div>';
+    return;
+  }
 
-  document.getElementById('chart-year').textContent = chart.current_year;
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  document.getElementById('chart-year').textContent = currentYear + ' YTD';
+
+  // Filter to current year entries, sort by date
+  const entries = Object.entries(history.daily)
+    .filter(([date]) => date.startsWith(String(currentYear)))
+    .sort((a, b) => a[0].localeCompare(b[0]));
+
+  if (entries.length < 2) {
+    document.getElementById('chart-wrap').innerHTML =
+      '<div class="chart-empty">Chart data accumulates daily. Check back after a few days of scraper runs.</div>';
+    return;
+  }
+
+  // Compute daily deltas (new apps appeared since previous day)
+  const labels = [];
+  const newBars = [];
+  const delinqBars = [];
+  const cumNew = [];
+  const cumDelinq = [];
+  let totalNew = 0;
+  let totalDelinq = 0;
+
+  for (let i = 0; i < entries.length; i++) {
+    const [date, data] = entries[i];
+    labels.push(date.slice(5)); // MM-DD
+
+    let dailyNew = 0;
+    let dailyDelinq = 0;
+    if (i > 0) {
+      const prev = entries[i - 1][1];
+      dailyNew = Math.max(0, data.new_applications - prev.new_applications);
+      dailyDelinq = Math.max(0, data.delinquencies - prev.delinquencies);
+    } else {
+      // First day — use absolute counts as baseline, show zero
+      dailyNew = 0;
+      dailyDelinq = 0;
+    }
+
+    totalNew += dailyNew;
+    totalDelinq += dailyDelinq;
+
+    newBars.push(dailyNew);
+    delinqBars.push(-dailyDelinq);
+    cumNew.push(totalNew);
+    cumDelinq.push(-totalDelinq);
+  }
 
   const ctx = document.getElementById('main-chart').getContext('2d');
-
-  // Negate delinquency values for below-axis display
-  const delinqBars = chart.delinquencies_current.map(v => -v);
-  const cumDelinqCurrent = (chart.cumulative_delinq_current || []).map(v => v != null ? -v : null);
-  const cumDelinqPrior = (chart.cumulative_delinq_prior || []).map(v => v != null ? -v : null);
-
   new Chart(ctx, {
     type: 'bar',
     data: {
-      labels: chart.months,
+      labels,
       datasets: [
         {
-          label: `New Licenses ${chart.current_year}`,
-          data: chart.new_licenses_current,
+          label: 'New Licenses',
+          data: newBars,
           backgroundColor: 'rgba(34, 197, 94, 0.7)',
-          borderColor: '#22c55e',
-          borderWidth: 1,
-          yAxisID: 'y',
-          order: 2,
+          borderColor: '#22c55e', borderWidth: 1,
+          yAxisID: 'y', order: 2,
         },
         {
-          label: `Delinquencies ${chart.current_year}`,
+          label: 'New Delinquencies',
           data: delinqBars,
           backgroundColor: 'rgba(239, 68, 68, 0.7)',
-          borderColor: '#ef4444',
-          borderWidth: 1,
-          yAxisID: 'y',
-          order: 2,
+          borderColor: '#ef4444', borderWidth: 1,
+          yAxisID: 'y', order: 2,
         },
         {
-          label: `Cumulative New ${chart.current_year}`,
-          data: chart.cumulative_new_current,
+          label: 'Cumulative New',
+          data: cumNew,
           type: 'line',
-          borderColor: '#22c55e',
-          backgroundColor: 'transparent',
-          borderWidth: 2,
-          pointRadius: 3,
-          pointBackgroundColor: '#22c55e',
-          tension: 0.3,
-          yAxisID: 'y1',
-          order: 1,
-          spanGaps: false,
+          borderColor: '#22c55e', backgroundColor: 'transparent',
+          borderWidth: 2, pointRadius: 0, tension: 0.3,
+          yAxisID: 'y1', order: 1,
         },
         {
-          label: `Cumulative New ${chart.prior_year}`,
-          data: chart.cumulative_new_prior,
+          label: 'Cumulative Delinquencies',
+          data: cumDelinq,
           type: 'line',
-          borderColor: 'rgba(34, 197, 94, 0.35)',
-          backgroundColor: 'transparent',
-          borderWidth: 2,
-          borderDash: [6, 3],
-          pointRadius: 0,
-          tension: 0.3,
-          yAxisID: 'y1',
-          order: 1,
-        },
-        {
-          label: `Cumulative Delinq ${chart.current_year}`,
-          data: cumDelinqCurrent,
-          type: 'line',
-          borderColor: '#ef4444',
-          backgroundColor: 'transparent',
-          borderWidth: 2,
-          pointRadius: 3,
-          pointBackgroundColor: '#ef4444',
-          tension: 0.3,
-          yAxisID: 'y1',
-          order: 1,
-          spanGaps: false,
-        },
-        {
-          label: `Cumulative Delinq ${chart.prior_year}`,
-          data: cumDelinqPrior,
-          type: 'line',
-          borderColor: 'rgba(239, 68, 68, 0.35)',
-          backgroundColor: 'transparent',
-          borderWidth: 2,
-          borderDash: [6, 3],
-          pointRadius: 0,
-          tension: 0.3,
-          yAxisID: 'y1',
-          order: 1,
+          borderColor: '#ef4444', backgroundColor: 'transparent',
+          borderWidth: 2, pointRadius: 0, tension: 0.3,
+          yAxisID: 'y1', order: 1,
         },
       ],
     },
@@ -727,68 +627,42 @@ function buildChart() {
       interaction: { mode: 'index', intersect: false },
       plugins: {
         legend: {
-          display: true,
-          position: 'bottom',
-          labels: {
-            color: '#8b8f9a',
-            font: { family: "'Outfit', sans-serif", size: 11 },
-            boxWidth: 14,
-            padding: 12,
-          },
+          display: true, position: 'bottom',
+          labels: { color: '#8b8f9a', font: { family: "'Outfit', sans-serif", size: 11 }, boxWidth: 14, padding: 12 },
         },
         tooltip: {
-          backgroundColor: '#0d0e12',
-          borderColor: '#23262e',
-          borderWidth: 1,
+          backgroundColor: '#0d0e12', borderColor: '#23262e', borderWidth: 1,
           titleFont: { family: "'Outfit', sans-serif" },
           bodyFont: { family: "'JetBrains Mono', monospace", size: 12 },
-          callbacks: {
-            label: function(ctx) {
-              const v = ctx.parsed.y;
-              const absV = Math.abs(v);
-              return `${ctx.dataset.label}: ${absV}`;
-            }
-          }
+          callbacks: { label: ctx => `${ctx.dataset.label}: ${Math.abs(ctx.parsed.y)}` }
         },
       },
       scales: {
         x: {
           grid: { color: 'rgba(35,38,46,0.5)' },
-          ticks: { color: '#8b8f9a', font: { family: "'Outfit', sans-serif", size: 11 } },
+          ticks: { color: '#8b8f9a', font: { family: "'Outfit', sans-serif", size: 10 }, maxRotation: 45, autoSkip: true, maxTicksLimit: 30 },
         },
         y: {
           position: 'left',
-          title: { display: true, text: 'Monthly Count', color: '#8b8f9a', font: { family: "'Outfit', sans-serif" } },
+          title: { display: true, text: 'Daily Count', color: '#8b8f9a', font: { family: "'Outfit', sans-serif" } },
           grid: { color: 'rgba(35,38,46,0.5)' },
-          ticks: {
-            color: '#8b8f9a',
-            font: { family: "'JetBrains Mono', monospace", size: 11 },
-            callback: v => Math.abs(v)
-          },
+          ticks: { color: '#8b8f9a', font: { family: "'JetBrains Mono', monospace", size: 11 }, callback: v => Math.abs(v) },
         },
         y1: {
           position: 'right',
-          title: { display: true, text: 'Cumulative', color: '#8b8f9a', font: { family: "'Outfit', sans-serif" } },
+          title: { display: true, text: 'Cumulative YTD', color: '#8b8f9a', font: { family: "'Outfit', sans-serif" } },
           grid: { drawOnChartArea: false },
-          ticks: {
-            color: '#8b8f9a',
-            font: { family: "'JetBrains Mono', monospace", size: 11 },
-            callback: v => Math.abs(v)
-          },
+          ticks: { color: '#8b8f9a', font: { family: "'JetBrains Mono', monospace", size: 11 }, callback: v => Math.abs(v) },
         },
       },
     },
   });
 }
 
-// ===== POPULATE FILTER DROPDOWNS =====
+// ===== POPULATE FILTERS =====
 function populateFilters() {
-  const statuses = [...new Set(DATA.records.map(r => r.status).filter(Boolean))].sort();
-  const cities = [...new Set(DATA.records.map(r => r.city).filter(Boolean))].sort();
-  const neighborhoods = [...new Set(DATA.records.map(r => r.neighborhood).filter(Boolean))].sort();
-
-  const fStatus = document.getElementById('f-status');
-  statuses.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; fStatus.appendChild(o); });
+  const cities = [...new Set(allDisplayRecords.map(r => r.city).filter(Boolean))].sort();
+  const neighborhoods = [...new Set(allDisplayRecords.map(r => r.neighborhood).filter(Boolean))].sort();
 
   const fCity = document.getElementById('f-city');
   cities.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; fCity.appendChild(o); });
@@ -800,16 +674,14 @@ function populateFilters() {
 // ===== FILTER LOGIC =====
 function applyFilters() {
   const search = (document.getElementById('f-search').value || '').toLowerCase();
-  const status = document.getElementById('f-status').value;
   const city = document.getElementById('f-city').value;
   const neighborhood = document.getElementById('f-neighborhood').value;
-
   const now = new Date();
   const thirtyDaysAgo = new Date(now - 30 * 24 * 60 * 60 * 1000);
 
-  filteredRecords = DATA.records.filter(r => {
+  filteredRecords = allDisplayRecords.filter(r => {
     // KPI filter
-    if (activeKPI && activeKPI !== 'all') {
+    if (activeKPI) {
       if (activeKPI === 'approved') {
         if (r.source !== 'state_approved') return false;
         if (r.issue_date && new Date(r.issue_date) < thirtyDaysAgo) return false;
@@ -820,54 +692,40 @@ function applyFilters() {
       }
     }
 
-    // Newsworthy filter
-    if (newsworthyActive) {
-      if (!NEWSWORTHY_CATEGORIES.includes(r.category) && r.source !== 'state_approved') return false;
-    }
-
-    // Text search
     if (search) {
       const haystack = `${r.name} ${r.dba} ${r.address} ${r.license_type} ${r.neighborhood}`.toLowerCase();
       if (!haystack.includes(search)) return false;
     }
-
-    // Dropdowns
-    if (status && r.status !== status) return false;
     if (city && r.city !== city) return false;
     if (neighborhood && r.neighborhood !== neighborhood) return false;
 
     return true;
   });
 
+  listPage = 0;
   updateMap();
   renderList();
 }
 
-function toggleNewsworthy() {
-  newsworthyActive = !newsworthyActive;
-  document.getElementById('btn-newsworthy').classList.toggle('active', newsworthyActive);
-  applyFilters();
-}
-
 function resetFilters() {
   activeKPI = null;
-  newsworthyActive = false;
   document.getElementById('f-search').value = '';
-  document.getElementById('f-status').value = '';
   document.getElementById('f-city').value = '';
   document.getElementById('f-neighborhood').value = '';
-  document.getElementById('btn-newsworthy').classList.remove('active');
   document.querySelectorAll('.kpi-card').forEach(c => c.classList.remove('active'));
   applyFilters();
 }
 
 // ===== MAP =====
 function initMap() {
-  map = L.map('map', { zoomControl: true }).setView([39.74, -104.99], 11);
+  map = L.map('map', {
+    zoomControl: true,
+    scrollWheelZoom: false,  // Require shift+scroll
+  }).setView([39.74, -104.99], 11);
+
   L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
     attribution: '&copy; <a href="https://carto.com/">CARTO</a>',
-    subdomains: 'abcd',
-    maxZoom: 19,
+    subdomains: 'abcd', maxZoom: 19,
   }).addTo(map);
 
   clusterGroup = L.markerClusterGroup({
@@ -877,26 +735,33 @@ function initMap() {
     showCoverageOnHover: false,
   });
   map.addLayer(clusterGroup);
+
+  // Shift+scroll to zoom
+  const hint = document.getElementById('scroll-hint');
+  let hintTimeout;
+  map.getContainer().addEventListener('wheel', function(e) {
+    if (e.shiftKey) {
+      map.scrollWheelZoom.enable();
+      setTimeout(() => map.scrollWheelZoom.disable(), 500);
+    } else {
+      hint.classList.add('show');
+      clearTimeout(hintTimeout);
+      hintTimeout = setTimeout(() => hint.classList.remove('show'), 1500);
+    }
+  }, { passive: true });
 }
 
 function createDonutIcon(cluster) {
   const children = cluster.getAllChildMarkers();
   const total = children.length;
-
-  // Count by category
   const counts = {};
-  children.forEach(m => {
-    const cat = m.options.category || 'unknown';
-    counts[cat] = (counts[cat] || 0) + 1;
-  });
+  children.forEach(m => { const c = m.options.category || 'unknown'; counts[c] = (counts[c] || 0) + 1; });
 
-  // Size based on count
   const size = Math.min(36 + Math.sqrt(total) * 6, 72);
   const r = size / 2;
   const outerR = r * 0.85;
   const innerR = r * 0.52;
 
-  // Build donut arcs
   let arcs = '';
   let startAngle = -Math.PI / 2;
   const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
@@ -904,22 +769,17 @@ function createDonutIcon(cluster) {
   for (const [cat, count] of entries) {
     const angle = (count / total) * 2 * Math.PI;
     const endAngle = startAngle + angle;
+    const color = CATEGORY_COLORS[cat] || '#374151';
 
     if (angle >= 2 * Math.PI - 0.001) {
-      // Full circle
-      arcs += `<circle cx="${r}" cy="${r}" r="${(outerR + innerR) / 2}" fill="none" stroke="${CATEGORY_COLORS[cat] || '#374151'}" stroke-width="${outerR - innerR}"/>`;
+      arcs += `<circle cx="${r}" cy="${r}" r="${(outerR + innerR) / 2}" fill="none" stroke="${color}" stroke-width="${outerR - innerR}"/>`;
     } else {
-      const x1 = r + outerR * Math.cos(startAngle);
-      const y1 = r + outerR * Math.sin(startAngle);
-      const x2 = r + outerR * Math.cos(endAngle);
-      const y2 = r + outerR * Math.sin(endAngle);
-      const x3 = r + innerR * Math.cos(endAngle);
-      const y3 = r + innerR * Math.sin(endAngle);
-      const x4 = r + innerR * Math.cos(startAngle);
-      const y4 = r + innerR * Math.sin(startAngle);
-      const largeArc = angle > Math.PI ? 1 : 0;
-
-      arcs += `<path d="M${x1},${y1} A${outerR},${outerR} 0 ${largeArc},1 ${x2},${y2} L${x3},${y3} A${innerR},${innerR} 0 ${largeArc},0 ${x4},${y4} Z" fill="${CATEGORY_COLORS[cat] || '#374151'}"/>`;
+      const x1 = r + outerR * Math.cos(startAngle), y1 = r + outerR * Math.sin(startAngle);
+      const x2 = r + outerR * Math.cos(endAngle), y2 = r + outerR * Math.sin(endAngle);
+      const x3 = r + innerR * Math.cos(endAngle), y3 = r + innerR * Math.sin(endAngle);
+      const x4 = r + innerR * Math.cos(startAngle), y4 = r + innerR * Math.sin(startAngle);
+      const lg = angle > Math.PI ? 1 : 0;
+      arcs += `<path d="M${x1},${y1} A${outerR},${outerR} 0 ${lg},1 ${x2},${y2} L${x3},${y3} A${innerR},${innerR} 0 ${lg},0 ${x4},${y4} Z" fill="${color}"/>`;
     }
     startAngle = endAngle;
   }
@@ -930,76 +790,51 @@ function createDonutIcon(cluster) {
     <text x="${r}" y="${r}" text-anchor="middle" dy="0.35em" fill="#e2e4e9" font-family="'JetBrains Mono',monospace" font-size="${size < 44 ? 10 : 13}" font-weight="600">${total}</text>
   </svg>`;
 
-  return L.divIcon({
-    html: svg,
-    className: 'donut-cluster',
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size / 2],
-  });
+  return L.divIcon({ html: svg, className: 'donut-cluster', iconSize: [size, size], iconAnchor: [size / 2, size / 2] });
 }
 
-function createMarkerIcon(record) {
-  const cat = record.category || 'unknown';
-  const color = CATEGORY_COLORS[cat] || '#374151';
-  const hasRT = !!record.rt_match;
-  const size = 14;
-
-  let svg = `<svg width="${size + 6}" height="${size + 6}" viewBox="0 0 ${size + 6} ${size + 6}" xmlns="http://www.w3.org/2000/svg">`;
-  if (hasRT) {
-    svg += `<circle cx="${(size+6)/2}" cy="${(size+6)/2}" r="${size/2 + 2}" fill="none" stroke="#3b82f6" stroke-width="2"/>`;
-  }
-  svg += `<circle cx="${(size+6)/2}" cy="${(size+6)/2}" r="${size/2 - 1}" fill="${color}" opacity="0.9"/>`;
-  svg += `</svg>`;
-
-  return L.divIcon({
-    html: svg,
-    className: 'donut-cluster',
-    iconSize: [size + 6, size + 6],
-    iconAnchor: [(size + 6) / 2, (size + 6) / 2],
-  });
+function createMarkerIcon(rec) {
+  const color = CATEGORY_COLORS[rec.category] || '#374151';
+  const hasRT = !!rec.rt_match;
+  const s = 14;
+  let svg = `<svg width="${s+6}" height="${s+6}" viewBox="0 0 ${s+6} ${s+6}" xmlns="http://www.w3.org/2000/svg">`;
+  if (hasRT) svg += `<circle cx="${(s+6)/2}" cy="${(s+6)/2}" r="${s/2+2}" fill="none" stroke="#3b82f6" stroke-width="2"/>`;
+  svg += `<circle cx="${(s+6)/2}" cy="${(s+6)/2}" r="${s/2-1}" fill="${color}" opacity="0.9"/></svg>`;
+  return L.divIcon({ html: svg, className: 'donut-cluster', iconSize: [s+6, s+6], iconAnchor: [(s+6)/2, (s+6)/2] });
 }
 
 function updateMap() {
   if (!clusterGroup) return;
   clusterGroup.clearLayers();
-
   const markers = [];
+
   for (const rec of filteredRecords) {
     if (!rec.lat || !rec.lng) continue;
-    const marker = L.marker([rec.lat, rec.lng], {
-      icon: createMarkerIcon(rec),
-      category: rec.category || 'unknown',
-    });
+    const marker = L.marker([rec.lat, rec.lng], { icon: createMarkerIcon(rec), category: rec.category || 'unknown' });
 
-    // Popup
-    let popupHtml = `<div style="min-width:200px">`;
-    popupHtml += `<div style="font-weight:600;font-size:14px;margin-bottom:4px">${esc(rec.name || rec.dba)}</div>`;
-    if (rec.dba && rec.name && rec.dba !== rec.name) {
-      popupHtml += `<div style="color:#8b8f9a;font-size:12px;margin-bottom:6px">DBA: ${esc(rec.dba)}</div>`;
-    }
-    popupHtml += `<div style="font-size:12px;margin-bottom:2px">${esc(rec.address)}, ${esc(rec.city)}</div>`;
-    popupHtml += `<div style="font-size:12px;margin-bottom:6px">${esc(rec.license_type)} • <span style="color:${CATEGORY_COLORS[rec.category]}">${CATEGORY_LABELS[rec.category] || rec.category}</span></div>`;
-    if (rec.status) popupHtml += `<div style="font-size:11px;color:#8b8f9a">Status: ${esc(rec.status)}</div>`;
-    if (rec.issue_date) popupHtml += `<div style="font-size:11px;color:#8b8f9a">Issued: ${rec.issue_date}</div>`;
+    let p = `<div style="min-width:200px">`;
+    p += `<div style="font-weight:600;font-size:14px;margin-bottom:4px">${esc(rec.name || rec.dba)}</div>`;
+    if (rec.dba && rec.name && rec.dba !== rec.name) p += `<div style="color:#8b8f9a;font-size:12px;margin-bottom:6px">DBA: ${esc(rec.dba)}</div>`;
+    p += `<div style="font-size:12px;margin-bottom:2px">${esc(rec.address)}, ${esc(rec.city)}</div>`;
+    p += `<div style="font-size:12px;margin-bottom:6px">${esc(rec.license_type)} • <span style="color:${CATEGORY_COLORS[rec.category]}">${CATEGORY_LABELS[rec.category] || ''}</span></div>`;
+    if (rec.status) p += `<div style="font-size:11px;color:#8b8f9a">Status: ${esc(rec.status)}</div>`;
+    if (rec.issue_date) p += `<div style="font-size:11px;color:#8b8f9a">Issued: ${rec.issue_date}</div>`;
 
-    // Links
-    const gMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(rec.address + ', ' + rec.city + ', CO')}`;
+    const gUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(rec.address+', '+rec.city+', CO')}`;
     const svUrl = `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${rec.lat},${rec.lng}`;
-    popupHtml += `<div style="margin-top:6px;display:flex;gap:10px">`;
-    popupHtml += `<a href="${gMapsUrl}" target="_blank" style="color:#3b82f6;font-size:11px;text-decoration:none">📍 Google Maps</a>`;
-    popupHtml += `<a href="${svUrl}" target="_blank" style="color:#3b82f6;font-size:11px;text-decoration:none">🔭 Street View</a>`;
-    popupHtml += `</div>`;
+    p += `<div style="margin-top:6px;display:flex;gap:10px">`;
+    p += `<a href="${gUrl}" target="_blank" style="color:#3b82f6;font-size:11px;text-decoration:none">📍 Maps</a>`;
+    p += `<a href="${svUrl}" target="_blank" style="color:#3b82f6;font-size:11px;text-decoration:none">🔭 Street View</a>`;
+    p += `</div>`;
 
     if (rec.rt_match) {
-      popupHtml += `<div style="margin-top:8px;padding:6px 8px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.25);border-radius:6px;font-size:11px">`;
-      popupHtml += `<div style="color:#3b82f6;font-weight:600;margin-bottom:2px">✦ Restaurant Tracker</div>`;
-      popupHtml += `<div>${esc(rec.rt_match.name)} • ${rec.rt_match.rating || '—'}★ (${rec.rt_match.reviews || 0} reviews)</div>`;
-      popupHtml += `<div style="color:#8b8f9a">${esc(rec.rt_match.type || '')} • ${esc(rec.rt_match.status || '')}</div>`;
-      popupHtml += `</div>`;
+      p += `<div style="margin-top:8px;padding:6px 8px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.25);border-radius:6px;font-size:11px">`;
+      p += `<div style="color:#3b82f6;font-weight:600;margin-bottom:2px">✦ Restaurant Tracker</div>`;
+      p += `<div>${esc(rec.rt_match.name)} • ${rec.rt_match.rating||'—'}★ (${rec.rt_match.reviews||0})</div>`;
+      p += `</div>`;
     }
-    popupHtml += `</div>`;
-
-    marker.bindPopup(popupHtml, { maxWidth: 320 });
+    p += `</div>`;
+    marker.bindPopup(p, { maxWidth: 320 });
     markers.push(marker);
   }
 
@@ -1008,37 +843,29 @@ function updateMap() {
 
 // ===== LICENSE LIST =====
 function renderList() {
-  const count = filteredRecords.length;
-  document.getElementById('list-count').textContent = `${count.toLocaleString()} records`;
+  document.getElementById('list-count').textContent = `${filteredRecords.length.toLocaleString()} records`;
 
-  // Sort
   let sorted = [...filteredRecords];
-  if (sortCol !== null) {
+  if (sortCol) {
     sorted.sort((a, b) => {
-      let va = getCellValue(a, sortCol);
-      let vb = getCellValue(b, sortCol);
+      let va = cellVal(a, sortCol), vb = cellVal(b, sortCol);
       if (va == null) va = '';
       if (vb == null) vb = '';
       if (typeof va === 'string') va = va.toLowerCase();
       if (typeof vb === 'string') vb = vb.toLowerCase();
-      if (va < vb) return sortAsc ? -1 : 1;
-      if (va > vb) return sortAsc ? 1 : -1;
-      return 0;
+      return va < vb ? (sortAsc ? -1 : 1) : va > vb ? (sortAsc ? 1 : -1) : 0;
     });
   }
 
-  // Pagination
-  const totalPages = Math.ceil(sorted.length / PAGE_SIZE);
-  if (listPage >= totalPages) listPage = Math.max(0, totalPages - 1);
+  const totalPages = Math.ceil(sorted.length / PAGE_SIZE) || 1;
+  if (listPage >= totalPages) listPage = totalPages - 1;
   const start = listPage * PAGE_SIZE;
-  const pageRecords = sorted.slice(start, start + PAGE_SIZE);
+  const page = sorted.slice(start, start + PAGE_SIZE);
 
-  // Header
   const cols = [
     { key: 'name', label: 'Business Name' },
     { key: 'category', label: 'Category' },
     { key: 'license_type', label: 'License Type' },
-    { key: 'status', label: 'Status' },
     { key: 'address', label: 'Address' },
     { key: 'city', label: 'City' },
     { key: 'neighborhood', label: 'Neighborhood' },
@@ -1046,59 +873,46 @@ function renderList() {
     { key: 'rt_match', label: 'RT' },
   ];
 
-  document.getElementById('list-thead').innerHTML = '<tr>' + cols.map((c, i) => {
-    const isSorted = sortCol === c.key;
-    const arrow = isSorted ? (sortAsc ? '▲' : '▼') : '▲';
-    return `<th class="${isSorted ? 'sorted' : ''}" onclick="sortList('${c.key}')">${c.label} <span class="sort-arrow">${arrow}</span></th>`;
+  document.getElementById('list-thead').innerHTML = '<tr>' + cols.map(c => {
+    const is = sortCol === c.key;
+    return `<th class="${is ? 'sorted' : ''}" onclick="doSort('${c.key}')">${c.label} <span class="sort-arrow">${is ? (sortAsc ? '▲' : '▼') : '▲'}</span></th>`;
   }).join('') + '</tr>';
 
-  // Body
-  const tbody = document.getElementById('list-tbody');
-  tbody.innerHTML = pageRecords.map(r => {
-    const catClass = `cat-${r.category === 'new_application' ? 'new' : r.category || 'unknown'}`;
-    const catLabel = CATEGORY_LABELS[r.category] || r.category || '—';
-    const rtCell = r.rt_match ? `<span class="rt-badge" title="${esc(r.rt_match.name)} • ${r.rt_match.rating||'—'}★">✦</span>` : '';
-    const addrUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.address + ', ' + r.city + ', CO')}`;
+  document.getElementById('list-tbody').innerHTML = page.map(r => {
+    const cc = r.category === 'new_application' ? 'new' : (r.category || 'unknown');
+    const cl = CATEGORY_LABELS[r.category] || r.category || '—';
+    const rt = r.rt_match ? `<span class="rt-badge" title="${esc(r.rt_match.name)} • ${r.rt_match.rating||'—'}★">✦</span>` : '';
+    const aUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.address+', '+r.city+', CO')}`;
+    // Escape the ID for onclick — replace single quotes
+    const safeId = r.id.replace(/'/g, "\\'");
     return `<tr>
-      <td><a class="name-link" onclick="openDetail('${esc(r.id)}')">${esc(r.name || r.dba || '—')}</a></td>
-      <td><span class="cat-badge ${catClass}">${catLabel}</span></td>
+      <td><a class="name-link" onclick="openDetail('${safeId}')">${esc(r.name || r.dba || '—')}</a></td>
+      <td><span class="cat-badge cat-${cc}">${cl}</span></td>
       <td>${esc(r.license_type || '—')}</td>
-      <td>${esc(r.status || '—')}</td>
-      <td><a href="${addrUrl}" target="_blank" style="color:var(--text);text-decoration:none" title="Open in Google Maps">${esc(r.address || '—')}</a></td>
+      <td><a href="${aUrl}" target="_blank" style="color:var(--text);text-decoration:none">${esc(r.address || '—')}</a></td>
       <td>${esc(r.city || '—')}</td>
       <td>${esc(r.neighborhood || '—')}</td>
       <td style="font-family:var(--mono);font-size:12px">${r.issue_date || '—'}</td>
-      <td>${rtCell}</td>
+      <td>${rt}</td>
     </tr>`;
   }).join('');
 
-  // Pagination controls
-  const pagDiv = document.getElementById('list-pagination');
-  if (totalPages <= 1) {
-    pagDiv.innerHTML = '';
-    return;
-  }
-  pagDiv.innerHTML = `
-    <button ${listPage === 0 ? 'disabled' : ''} onclick="listPage=0;renderList()">«</button>
-    <button ${listPage === 0 ? 'disabled' : ''} onclick="listPage--;renderList()">‹</button>
-    <span class="page-info">${listPage + 1} / ${totalPages}</span>
-    <button ${listPage >= totalPages - 1 ? 'disabled' : ''} onclick="listPage++;renderList()">›</button>
-    <button ${listPage >= totalPages - 1 ? 'disabled' : ''} onclick="listPage=${totalPages-1};renderList()">»</button>
+  const pg = document.getElementById('list-pagination');
+  if (totalPages <= 1) { pg.innerHTML = ''; return; }
+  pg.innerHTML = `
+    <button ${listPage===0?'disabled':''} onclick="listPage=0;renderList()">«</button>
+    <button ${listPage===0?'disabled':''} onclick="listPage--;renderList()">‹</button>
+    <span class="page-info">${listPage+1} / ${totalPages}</span>
+    <button ${listPage>=totalPages-1?'disabled':''} onclick="listPage++;renderList()">›</button>
+    <button ${listPage>=totalPages-1?'disabled':''} onclick="listPage=${totalPages-1};renderList()">»</button>
   `;
 }
 
-function getCellValue(rec, key) {
-  if (key === 'rt_match') return rec.rt_match ? 1 : 0;
-  return rec[key];
-}
+function cellVal(rec, key) { return key === 'rt_match' ? (rec.rt_match ? 1 : 0) : rec[key]; }
 
-function sortList(col) {
-  if (sortCol === col) {
-    sortAsc = !sortAsc;
-  } else {
-    sortCol = col;
-    sortAsc = true;
-  }
+function doSort(col) {
+  if (sortCol === col) sortAsc = !sortAsc;
+  else { sortCol = col; sortAsc = true; }
   listPage = 0;
   renderList();
 }
@@ -1108,78 +922,62 @@ function openDetail(id) {
   const rec = DATA.records.find(r => r.id === id);
   if (!rec) return;
 
-  const catClass = `cat-${rec.category === 'new_application' ? 'new' : rec.category || 'unknown'}`;
-  const catLabel = CATEGORY_LABELS[rec.category] || rec.category || '—';
-  const gMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(rec.address + ', ' + rec.city + ', CO')}`;
+  const cc = rec.category === 'new_application' ? 'new' : (rec.category || 'unknown');
+  const cl = CATEGORY_LABELS[rec.category] || rec.category || '—';
+  const gUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(rec.address+', '+rec.city+', CO')}`;
   const svUrl = rec.lat && rec.lng ? `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${rec.lat},${rec.lng}` : null;
 
-  let html = `<h2>${esc(rec.name || '—')}</h2>`;
-  if (rec.dba && rec.dba !== rec.name) html += `<div class="modal-dba">DBA: ${esc(rec.dba)}</div>`;
-  html += `<span class="cat-badge ${catClass}" style="margin-bottom:8px;display:inline-block">${catLabel}</span>`;
+  let h = `<h2>${esc(rec.name || '—')}</h2>`;
+  if (rec.dba && rec.dba !== rec.name) h += `<div class="modal-dba">DBA: ${esc(rec.dba)}</div>`;
+  h += `<span class="cat-badge cat-${cc}" style="display:inline-block;margin-bottom:8px">${cl}</span>`;
 
-  // License details
-  html += `<div class="modal-section"><h3>License Details</h3><div class="modal-grid">`;
-  html += field('Type', rec.license_type);
-  html += field('Number', rec.license_number);
-  html += field('Status', rec.status);
-  html += field('Source', rec.source === 'denver' ? 'Denver ArcGIS' : rec.source === 'state_approved' ? 'State (Approved)' : 'State (Active)');
-  html += `</div></div>`;
+  h += `<div class="modal-section"><h3>License Details</h3><div class="modal-grid">`;
+  h += fld('Type', rec.license_type);
+  h += fld('Number', rec.license_number);
+  h += fld('Status', rec.status);
+  h += fld('Source', rec.source === 'denver' ? 'Denver ArcGIS' : rec.source === 'state_approved' ? 'State (Approved)' : 'State (Active)');
+  h += `</div></div>`;
 
-  // Location
-  html += `<div class="modal-section"><h3>Location</h3><div class="modal-grid">`;
-  html += field('Address', rec.address);
-  html += field('City', `${rec.city}, ${rec.state} ${rec.zip}`);
-  if (rec.neighborhood) html += field('Neighborhood', rec.neighborhood);
-  if (rec.council_district) html += field('Council Dist.', rec.council_district);
-  html += `</div>`;
-  html += `<div class="modal-links">`;
-  html += `<a href="${gMapsUrl}" target="_blank">📍 Google Maps</a>`;
-  if (svUrl) html += `<a href="${svUrl}" target="_blank">🔭 Street View</a>`;
-  html += `</div></div>`;
+  h += `<div class="modal-section"><h3>Location</h3><div class="modal-grid">`;
+  h += fld('Address', rec.address);
+  h += fld('City', `${rec.city}, ${rec.state} ${rec.zip}`);
+  if (rec.neighborhood) h += fld('Neighborhood', rec.neighborhood);
+  if (rec.council_district) h += fld('Council Dist.', rec.council_district);
+  h += `</div><div class="modal-links">`;
+  h += `<a href="${gUrl}" target="_blank">📍 Google Maps</a>`;
+  if (svUrl) h += `<a href="${svUrl}" target="_blank">🔭 Street View</a>`;
+  h += `</div></div>`;
 
-  // Dates
-  html += `<div class="modal-section"><h3>Dates</h3><div class="modal-grid">`;
-  html += field('Issued', rec.issue_date || '—');
-  html += field('Expires', rec.expiration_date || '—');
-  if (rec.hearing_date) html += field('Hearing', rec.hearing_date);
-  if (rec.hearing_time) html += field('Hearing Time', rec.hearing_time);
-  if (rec.hearing_status) html += field('Hearing Status', rec.hearing_status);
-  html += `</div></div>`;
+  h += `<div class="modal-section"><h3>Dates</h3><div class="modal-grid">`;
+  h += fld('Issued', rec.issue_date || '—');
+  h += fld('Expires', rec.expiration_date || '—');
+  if (rec.hearing_date) h += fld('Hearing', rec.hearing_date);
+  if (rec.hearing_time) h += fld('Hearing Time', rec.hearing_time);
+  if (rec.hearing_status) h += fld('Hearing Status', rec.hearing_status);
+  h += `</div></div>`;
 
-  // RT Match
   if (rec.rt_match) {
     const rt = rec.rt_match;
-    html += `<div class="modal-rt"><h3>✦ Restaurant Tracker Match</h3><div class="modal-grid">`;
-    html += field('Name', rt.name);
-    html += field('Rating', rt.rating ? `${rt.rating}★ (${rt.reviews || 0})` : '—');
-    html += field('Type', rt.type || '—');
-    html += field('Status', rt.status || '—');
-    if (rt.first_seen) html += field('First Seen', rt.first_seen);
-    html += `</div></div>`;
+    h += `<div class="modal-rt"><h3>✦ Restaurant Tracker Match</h3><div class="modal-grid">`;
+    h += fld('Name', rt.name);
+    h += fld('Rating', rt.rating ? `${rt.rating}★ (${rt.reviews || 0})` : '—');
+    h += fld('Type', rt.type || '—');
+    h += fld('Status', rt.status || '—');
+    if (rt.first_seen) h += fld('First Seen', rt.first_seen);
+    h += `</div></div>`;
   }
 
-  document.getElementById('modal-body').innerHTML = html;
+  document.getElementById('modal-body').innerHTML = h;
   document.getElementById('modal-overlay').classList.add('open');
 }
 
-function field(label, value) {
+function fld(label, value) {
   return `<div class="modal-field"><label>${label}</label><span>${esc(String(value || '—'))}</span></div>`;
 }
-
-function closeModal() {
-  document.getElementById('modal-overlay').classList.remove('open');
-}
-
-// Close modal on Escape
+function closeModal() { document.getElementById('modal-overlay').classList.remove('open'); }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
-// ===== UTIL =====
-function esc(str) {
-  if (!str) return '';
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
-}
+function esc(str) { if (!str) return ''; const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
 </script>
 </body>
 </html>
