@@ -82,7 +82,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git fetch origin main
           git reset --soft origin/main
-          git add liquor-data.json data/previous.json
+          git add liquor-data.json data/previous.json data/chart-history.json
           if git diff --cached --quiet; then
             echo "No changes to commit"
           else
