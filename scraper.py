@@ -237,35 +237,29 @@ def classify_records(records, previous_records):
     """
     Classify each record. Uses address history to distinguish genuinely new
     applications from renewals at existing locations.
+
+    Key logic: a recently issued license is a "renewal" only if there's ANOTHER
+    active license at the same address with an older issue date. Otherwise it's
+    a new application. Addresses where all prior licenses are closed/expired
+    produce "new_application" — a new business at an old location is still news.
     """
     now = datetime.now(timezone.utc)
     one_year_ago = now - timedelta(days=365)
 
-    # Build set of addresses with older licenses (pre-existing locations)
-    prev_addresses = set()
-    if previous_records:
-        for rec in previous_records:
-            addr = normalize_addr(rec.get("address", ""))
-            if addr:
-                prev_addresses.add(addr)
-
-    # Also gather addresses from current data with old issue dates
-    old_addresses = set()
+    # Build map: address → list of (issue_date, record_id, status)
+    # for records with active/non-closed status
+    addr_history = defaultdict(list)
     for rec in records:
-        issue_str = rec.get("issue_date")
-        if issue_str:
-            try:
-                issue_dt = datetime.fromisoformat(issue_str)
-                if issue_dt.tzinfo is None:
-                    issue_dt = issue_dt.replace(tzinfo=timezone.utc)
-                if issue_dt < one_year_ago:
-                    addr = normalize_addr(rec.get("address", ""))
-                    if addr:
-                        old_addresses.add(addr)
-            except (ValueError, TypeError):
-                pass
-
-    all_known_addresses = prev_addresses | old_addresses
+        status = (rec.get("status") or "").upper()
+        if "CLOSED" in status or "EXPIRED" in status or "DENIED" in status or "REVOKED" in status:
+            continue
+        addr = normalize_addr(rec.get("address", ""))
+        if addr:
+            addr_history[addr].append({
+                "id": rec.get("id"),
+                "issue_date": rec.get("issue_date"),
+                "status": status,
+            })
 
     for rec in records:
         status = (rec.get("status") or "").upper()
@@ -276,20 +270,19 @@ def classify_records(records, previous_records):
         if "DELINQUENT" in status:
             rec["category"] = "delinquent"
             continue
-        # For PENDING, active, and approved: check address history
-        # to determine if genuinely new or a renewal
+
         addr = normalize_addr(rec.get("address", ""))
 
         if "PENDING" in status:
-            # Pending at a known address = renewal in progress (hide)
-            # Pending at a new address = genuinely new application (show)
-            if addr and addr in all_known_addresses:
+            # Pending: check if there are OTHER non-closed records at this address
+            others = [h for h in addr_history.get(addr, []) if h["id"] != rec.get("id")]
+            if others:
                 rec["category"] = "renewal"
             else:
                 rec["category"] = "new_application"
             continue
 
-        # Active/approved — new or renewal?
+        # Active/approved — check if recently issued
         issue_date_str = rec.get("issue_date")
         is_recent = False
 
@@ -303,7 +296,11 @@ def classify_records(records, previous_records):
                 pass
 
         if is_recent or rec.get("source") == "state_approved":
-            if addr and addr in all_known_addresses:
+            # Check for OTHER active records at this address with older issue dates
+            others = [h for h in addr_history.get(addr, [])
+                       if h["id"] != rec.get("id") and h.get("issue_date")
+                       and h["issue_date"] < (issue_date_str or "")]
+            if others:
                 rec["category"] = "renewal"
             else:
                 rec["category"] = "new_application"
@@ -311,21 +308,21 @@ def classify_records(records, previous_records):
             rec["category"] = "active"
 
     # --- Post-classification: suppress resolved delinquencies ---
-    # Build set of addresses that have an active license
-    active_addresses = set()
+    # If an address has both a DELINQUENT and an ACTIVE license, the
+    # delinquency is likely resolved (new license replaced the old one)
+    active_addrs = set()
     for rec in records:
         status = (rec.get("status") or "").upper()
         if "ACTIVE" in status and "DELINQUENT" not in status:
             addr = normalize_addr(rec.get("address", ""))
             if addr:
-                active_addresses.add(addr)
+                active_addrs.add(addr)
 
-    # Downgrade delinquent records at addresses with active licenses
     resolved = 0
     for rec in records:
         if rec.get("category") == "delinquent":
             addr = normalize_addr(rec.get("address", ""))
-            if addr and addr in active_addresses:
+            if addr and addr in active_addrs:
                 rec["category"] = "resolved_delinquent"
                 resolved += 1
 
