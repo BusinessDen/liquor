@@ -3,558 +3,1183 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Liquor Licenses | Dreck</title>
+<title>Liquor License Tracker — Dreck Suite</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
-:root {
-    --bg-primary: #08090a;
-    --bg-surface: #0d0e12;
-    --bg-surface-2: #13141a;
-    --bg-surface-3: #16171c;
-    --border: #1e1f25;
-    --border-hover: #2a2b32;
-    --text-primary: #e2e4e9;
-    --text-secondary: #8b8d98;
-    --text-dim: #5a5c66;
+  :root {
+    --bg: #08090a;
+    --surface: #0d0e12;
+    --surface2: #131519;
+    --surface3: #1a1c22;
+    --border: #23262e;
+    --text: #e2e4e9;
+    --text-dim: #8b8f9a;
+    --text-muted: #555963;
     --blue: #3b82f6;
-    --blue-dim: #2563eb;
     --amber: #f5a623;
     --green: #22c55e;
     --red: #ef4444;
+    --gray: #6b7280;
+    --dark-gray: #374151;
     --pink: #ec4899;
-    --orange: #f97316;
-    --purple: #a855f7;
-    --cyan: #06b6d4;
-    --font-body: 'Outfit', sans-serif;
-    --font-mono: 'JetBrains Mono', monospace;
     --radius: 10px;
-}
-* { margin:0; padding:0; box-sizing:border-box; }
-body { background:var(--bg-primary); color:var(--text-primary); font-family:var(--font-body); font-size:15px; line-height:1.5; }
-a { color:var(--blue); text-decoration:none; }
-a:hover { text-decoration:underline; }
+    --font: 'Outfit', sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
 
-.header { background:var(--bg-surface); border-bottom:1px solid var(--border); padding:14px 24px; display:flex; align-items:center; gap:16px; position:sticky; top:0; z-index:1000; }
-.header .logo { font-size:20px; font-weight:700; letter-spacing:-0.5px; }
-.header .logo span { color:var(--amber); }
-.header .subtitle { color:var(--text-secondary); font-size:13px; font-weight:400; }
-.header .meta { margin-left:auto; font-size:12px; color:var(--text-dim); font-family:var(--font-mono); }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
 
-.container { max-width:1600px; margin:0 auto; padding:20px 24px; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 15px;
+    line-height: 1.5;
+    overflow-x: hidden;
+  }
 
-.stats-row { display:grid; grid-template-columns:repeat(auto-fit, minmax(160px,1fr)); gap:12px; margin-bottom:20px; }
-.stat-card { background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px 18px; }
-.stat-card .label { font-size:11px; text-transform:uppercase; letter-spacing:0.8px; color:var(--text-dim); font-weight:500; margin-bottom:4px; }
-.stat-card .value { font-size:28px; font-weight:700; font-family:var(--font-mono); letter-spacing:-1px; }
-.stat-card .value.blue { color:var(--blue); }
-.stat-card .value.green { color:var(--green); }
-.stat-card .value.amber { color:var(--amber); }
-.stat-card .value.red { color:var(--red); }
-.stat-card .value.pink { color:var(--pink); }
-.stat-card .value.purple { color:var(--purple); }
+  /* ---- Auth ---- */
+  #auth-overlay {
+    position: fixed; inset: 0; z-index: 9999;
+    background: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 16px;
+  }
+  #auth-overlay.hidden { display: none; }
+  #auth-overlay h1 { font-size: 24px; font-weight: 600; letter-spacing: -0.5px; }
+  #auth-overlay input {
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); padding: 10px 16px; border-radius: var(--radius);
+    font-family: var(--font); font-size: 15px; width: 260px; outline: none;
+  }
+  #auth-overlay input:focus { border-color: var(--blue); }
+  #auth-overlay .error { color: var(--red); font-size: 13px; min-height: 20px; }
+  #auth-overlay button {
+    background: var(--blue); color: #fff; border: none; padding: 10px 24px;
+    border-radius: var(--radius); font-family: var(--font); font-size: 15px;
+    cursor: pointer; font-weight: 500;
+  }
 
-.diff-panel { background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--radius); margin-bottom:20px; overflow:hidden; }
-.diff-header { padding:14px 18px; display:flex; align-items:center; gap:10px; cursor:pointer; user-select:none; }
-.diff-header:hover { background:var(--bg-surface-2); }
-.diff-header h3 { font-size:14px; font-weight:600; }
-.diff-header .badge { background:var(--blue); color:#fff; font-size:11px; padding:2px 8px; border-radius:99px; font-weight:600; font-family:var(--font-mono); }
-.diff-header .arrow { margin-left:auto; color:var(--text-dim); transition:transform 0.2s; }
-.diff-header.open .arrow { transform:rotate(180deg); }
-.diff-body { display:none; border-top:1px solid var(--border); padding:14px 18px; }
-.diff-body.show { display:block; }
-.diff-item { padding:8px 0; border-bottom:1px solid var(--border); font-size:13px; }
-.diff-item:last-child { border-bottom:none; }
-.diff-item .name { font-weight:600; }
-.diff-item .detail { color:var(--text-secondary); }
-.diff-item .tag { display:inline-block; font-size:10px; text-transform:uppercase; padding:1px 6px; border-radius:4px; font-weight:600; font-family:var(--font-mono); }
-.diff-item .tag.new { background:rgba(34,197,94,0.15); color:var(--green); }
-.diff-item .tag.removed { background:rgba(239,68,68,0.15); color:var(--red); }
-.diff-item .tag.changed { background:rgba(245,166,35,0.15); color:var(--amber); }
+  /* ---- Layout ---- */
+  #app { display: none; }
+  #app.visible { display: block; }
 
-.filters-bar { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:16px; align-items:flex-end; }
-.filter-group { display:flex; flex-direction:column; gap:4px; }
-.filter-group label { font-size:10px; text-transform:uppercase; letter-spacing:0.8px; color:var(--text-dim); font-weight:500; }
-.filter-group select, .filter-group input[type="text"] {
-    background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary);
-    padding:8px 12px; border-radius:8px; font-size:13px; font-family:var(--font-body);
-    min-width:160px; outline:none;
-}
-.filter-group select:focus, .filter-group input:focus { border-color:var(--blue); }
-.filter-group input[type="text"] { min-width:220px; }
-.filter-reset { background:var(--bg-surface-2); border:1px solid var(--border); color:var(--text-secondary); padding:8px 14px; border-radius:8px; font-size:12px; cursor:pointer; font-family:var(--font-body); }
-.filter-reset:hover { background:var(--bg-surface-3); color:var(--text-primary); }
+  header {
+    padding: 20px 24px 0;
+    display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
+  }
+  header h1 {
+    font-size: 22px; font-weight: 700; letter-spacing: -0.5px;
+    background: linear-gradient(135deg, var(--amber), var(--blue));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  header .meta { font-size: 13px; color: var(--text-dim); font-family: var(--mono); }
 
-.toggle-btn { display:inline-flex; align-items:center; gap:6px; padding:8px 14px; border-radius:8px; font-size:12px; font-family:var(--font-body); font-weight:500; cursor:pointer; border:1px solid var(--border); background:var(--bg-surface); color:var(--text-secondary); transition:all 0.15s; }
-.toggle-btn:hover { border-color:var(--border-hover); color:var(--text-primary); }
-.toggle-btn.active { background:rgba(245,166,35,0.12); border-color:var(--amber); color:var(--amber); }
-.toggle-btn .dot { width:8px; height:8px; border-radius:50%; background:var(--text-dim); transition:background 0.15s; }
-.toggle-btn.active .dot { background:var(--amber); box-shadow:0 0 6px var(--amber); }
+  /* ---- KPI Cards ---- */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px; padding: 16px 24px;
+  }
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .kpi-card:hover { border-color: var(--text-muted); transform: translateY(-1px); }
+  .kpi-card.active { border-color: var(--blue); background: var(--surface2); }
+  .kpi-card.active::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: var(--blue);
+  }
+  .kpi-card .kpi-label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px;
+    color: var(--text-dim); font-weight: 500; margin-bottom: 4px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .kpi-card .kpi-value {
+    font-size: 28px; font-weight: 700; font-family: var(--mono);
+    line-height: 1.1;
+  }
+  .kpi-card .kpi-sub {
+    font-size: 11px; color: var(--text-muted); margin-top: 2px;
+    font-family: var(--mono);
+  }
+  .kpi-card[data-filter="new_application"] .kpi-value { color: var(--green); }
+  .kpi-card[data-filter="approved"] .kpi-value { color: var(--amber); }
+  .kpi-card[data-filter="pending"] .kpi-value { color: var(--amber); }
+  .kpi-card[data-filter="delinquent"] .kpi-value { color: var(--red); }
+  .kpi-card[data-filter="rt_match"] .kpi-value { color: var(--blue); }
 
-.tab-bar { display:flex; gap:0; margin-bottom:16px; border-bottom:1px solid var(--border); }
-.tab-btn { padding:10px 20px; background:none; border:none; color:var(--text-secondary); font-size:14px; font-family:var(--font-body); cursor:pointer; border-bottom:2px solid transparent; font-weight:500; }
-.tab-btn:hover { color:var(--text-primary); }
-.tab-btn.active { color:var(--blue); border-bottom-color:var(--blue); }
-.tab-content { display:none; }
-.tab-content.active { display:block; }
+  /* ---- Diff Panel ---- */
+  .diff-panel {
+    margin: 0 24px 12px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .diff-panel.hidden { display: none; }
+  .diff-header {
+    padding: 10px 16px; cursor: pointer; display: flex;
+    align-items: center; gap: 8px; font-weight: 500;
+    font-size: 14px;
+  }
+  .diff-header .badge {
+    background: var(--amber); color: #000; padding: 2px 8px;
+    border-radius: 20px; font-size: 11px; font-weight: 600;
+    font-family: var(--mono);
+  }
+  .diff-body { padding: 0 16px 12px; font-size: 13px; display: none; }
+  .diff-body.open { display: block; }
+  .diff-item {
+    padding: 4px 0; border-bottom: 1px solid var(--border);
+    display: flex; gap: 8px; align-items: baseline;
+  }
+  .diff-item:last-child { border-bottom: none; }
+  .diff-tag {
+    font-size: 10px; text-transform: uppercase; font-weight: 600;
+    padding: 1px 6px; border-radius: 4px; font-family: var(--mono);
+  }
+  .diff-tag.new { background: rgba(34,197,94,0.2); color: var(--green); }
+  .diff-tag.removed { background: rgba(239,68,68,0.2); color: var(--red); }
+  .diff-tag.changed { background: rgba(245,166,35,0.2); color: var(--amber); }
 
-#map { height:500px; border-radius:var(--radius); border:1px solid var(--border); }
-.leaflet-container { background:var(--bg-surface) !important; }
-.leaflet-tile-pane { filter:brightness(0.7) contrast(1.1) saturate(0.8); }
-.leaflet-popup-content-wrapper { background:var(--bg-surface-2) !important; color:var(--text-primary) !important; border-radius:8px !important; border:1px solid var(--border); box-shadow:0 8px 32px rgba(0,0,0,0.6) !important; }
-.leaflet-popup-tip { background:var(--bg-surface-2) !important; }
-.leaflet-popup-content { font-family:var(--font-body) !important; font-size:13px !important; line-height:1.5 !important; }
-.leaflet-popup-content .popup-name { font-weight:600; font-size:14px; margin-bottom:4px; }
-.leaflet-popup-content .popup-type { color:var(--amber); font-size:11px; text-transform:uppercase; font-weight:600; letter-spacing:0.5px; margin-bottom:6px; }
-.leaflet-popup-content .popup-row { color:var(--text-secondary); font-size:12px; margin-bottom:3px; }
-.leaflet-popup-content .popup-status { display:inline-block; font-size:10px; padding:1px 6px; border-radius:4px; font-weight:600; font-family:var(--font-mono); }
-.leaflet-popup-content .popup-links { display:flex; gap:10px; margin-top:6px; padding-top:6px; border-top:1px solid #1e1f25; }
-.leaflet-popup-content .popup-links a { font-size:11px; font-weight:500; }
-.leaflet-popup-content .popup-rt { margin-top:6px; padding:6px 8px; background:rgba(59,130,246,0.08); border-radius:6px; border:1px solid rgba(59,130,246,0.15); }
-.leaflet-popup-content .popup-rt .rt-label { font-size:10px; text-transform:uppercase; letter-spacing:0.6px; color:var(--blue); font-weight:600; margin-bottom:2px; }
-.leaflet-popup-content .popup-rt .rt-detail { font-size:11px; color:var(--text-secondary); }
-.marker-cluster { background:rgba(59,130,246,0.3) !important; }
-.marker-cluster div { background:var(--blue) !important; color:#fff !important; font-family:var(--font-mono) !important; font-weight:600 !important; font-size:12px !important; }
+  /* ---- Chart Section ---- */
+  .chart-section {
+    margin: 0 24px 16px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 16px;
+  }
+  .chart-section h2 {
+    font-size: 14px; font-weight: 600; margin-bottom: 12px;
+    color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .chart-wrap { position: relative; height: 280px; }
 
-.table-wrap { overflow-x:auto; border:1px solid var(--border); border-radius:var(--radius); }
-table { width:100%; border-collapse:collapse; font-size:13px; }
-thead th { background:var(--bg-surface-2); color:var(--text-secondary); font-size:11px; text-transform:uppercase; letter-spacing:0.6px; font-weight:600; padding:10px 14px; text-align:left; cursor:pointer; white-space:nowrap; position:sticky; top:0; border-bottom:1px solid var(--border); user-select:none; }
-thead th:hover { color:var(--text-primary); background:var(--bg-surface-3); }
-thead th .sort-arrow { margin-left:4px; color:var(--text-dim); }
-tbody tr { border-bottom:1px solid var(--border); }
-tbody tr:hover { background:var(--bg-surface); }
-tbody td { padding:9px 14px; color:var(--text-primary); white-space:nowrap; }
-tbody td.wrap { white-space:normal; max-width:280px; }
-.status-badge { display:inline-block; font-size:10px; padding:2px 7px; border-radius:4px; font-weight:600; font-family:var(--font-mono); text-transform:uppercase; letter-spacing:0.3px; }
-.status-badge.active { background:rgba(34,197,94,0.15); color:var(--green); }
-.status-badge.pending { background:rgba(59,130,246,0.15); color:var(--blue); }
-.status-badge.delinquent { background:rgba(245,166,35,0.15); color:var(--amber); }
-.status-badge.closed { background:rgba(239,68,68,0.1); color:var(--text-dim); }
-.status-badge.approved { background:rgba(168,85,247,0.15); color:var(--purple); }
-.rt-badge { display:inline-block; font-size:9px; padding:1px 5px; border-radius:3px; font-weight:600; font-family:var(--font-mono); background:rgba(59,130,246,0.12); color:var(--blue); vertical-align:middle; cursor:default; }
+  /* ---- Filter Bar ---- */
+  .filter-bar {
+    display: flex; gap: 8px; padding: 0 24px 12px; flex-wrap: wrap;
+    align-items: center;
+  }
+  .filter-bar input, .filter-bar select {
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); padding: 8px 12px; border-radius: var(--radius);
+    font-family: var(--font); font-size: 13px; outline: none;
+  }
+  .filter-bar input { flex: 1; min-width: 180px; }
+  .filter-bar select { min-width: 140px; }
+  .filter-bar input:focus, .filter-bar select:focus { border-color: var(--blue); }
+  .btn-reset {
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text-dim); padding: 8px 14px; border-radius: var(--radius);
+    font-family: var(--font); font-size: 13px; cursor: pointer;
+  }
+  .btn-reset:hover { border-color: var(--text-muted); color: var(--text); }
+  .btn-newsworthy {
+    background: rgba(245,166,35,0.15); border: 1px solid var(--amber);
+    color: var(--amber); padding: 8px 14px; border-radius: 20px;
+    font-family: var(--font); font-size: 13px; cursor: pointer; font-weight: 500;
+  }
+  .btn-newsworthy.active { background: var(--amber); color: #000; }
 
-.pagination { display:flex; align-items:center; justify-content:space-between; padding:12px 0; }
-.pagination .info { font-size:12px; color:var(--text-dim); font-family:var(--font-mono); }
-.pagination .pages { display:flex; gap:4px; }
-.pagination .pages button { background:var(--bg-surface); border:1px solid var(--border); color:var(--text-secondary); padding:6px 12px; border-radius:6px; font-size:12px; cursor:pointer; font-family:var(--font-mono); }
-.pagination .pages button:hover { background:var(--bg-surface-2); color:var(--text-primary); }
-.pagination .pages button.active { background:var(--blue); border-color:var(--blue); color:#fff; }
-.pagination .pages button:disabled { opacity:0.4; cursor:default; }
+  /* ---- Map ---- */
+  .map-section { margin: 0 24px 16px; position: relative; }
+  #map {
+    height: 500px; border-radius: var(--radius);
+    border: 1px solid var(--border);
+  }
+  /* Improve tile contrast */
+  .leaflet-tile-pane { filter: brightness(1.45) contrast(1.15) saturate(1.3); }
+  .leaflet-control-zoom a {
+    background: var(--surface) !important; color: var(--text) !important;
+    border-color: var(--border) !important;
+  }
 
-.loading { text-align:center; padding:80px 20px; }
-.loading .spinner { display:inline-block; width:32px; height:32px; border:3px solid var(--border); border-top-color:var(--blue); border-radius:50%; animation:spin 0.8s linear infinite; }
-@keyframes spin { to { transform:rotate(360deg); } }
-.loading p { margin-top:12px; color:var(--text-secondary); font-size:13px; }
+  /* Donut cluster styles */
+  .donut-cluster {
+    background: none !important; border: none !important;
+    display: flex; align-items: center; justify-content: center;
+  }
 
-.map-legend { position:absolute; bottom:24px; right:24px; background:var(--bg-surface-2); border:1px solid var(--border); border-radius:8px; padding:10px 14px; z-index:800; font-size:11px; }
-.map-legend .legend-title { font-size:10px; text-transform:uppercase; letter-spacing:0.6px; color:var(--text-dim); font-weight:600; margin-bottom:6px; }
-.map-legend .legend-item { display:flex; align-items:center; gap:6px; margin-bottom:3px; color:var(--text-secondary); }
-.map-legend .legend-item:last-child { margin-bottom:0; }
+  /* Legend */
+  .map-legend {
+    position: absolute; bottom: 16px; right: 16px; z-index: 600;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 10px 14px;
+    font-size: 12px;
+  }
+  .map-legend h4 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-dim); margin-bottom: 6px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; margin: 3px 0; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 
-@media (max-width:768px) {
-    .container { padding:12px; }
-    .stats-row { grid-template-columns:repeat(3,1fr); }
-    #map { height:350px; }
-    .filters-bar { gap:8px; }
-    .filter-group select, .filter-group input { min-width:120px; font-size:12px; }
-}
+  /* ---- License List ---- */
+  .list-section {
+    margin: 0 24px 24px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .list-header {
+    padding: 12px 16px; display: flex; align-items: center;
+    justify-content: space-between; border-bottom: 1px solid var(--border);
+  }
+  .list-header h2 {
+    font-size: 14px; font-weight: 600; color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .list-header .count {
+    font-family: var(--mono); font-size: 13px; color: var(--text-muted);
+  }
+  .list-table-wrap { overflow-x: auto; }
+  .list-table {
+    width: 100%; border-collapse: collapse; font-size: 13px;
+  }
+  .list-table thead th {
+    padding: 8px 12px; text-align: left; font-weight: 500;
+    color: var(--text-dim); font-size: 11px; text-transform: uppercase;
+    letter-spacing: 0.5px; border-bottom: 1px solid var(--border);
+    cursor: pointer; white-space: nowrap; user-select: none;
+    position: sticky; top: 0; background: var(--surface);
+  }
+  .list-table thead th:hover { color: var(--text); }
+  .list-table thead th .sort-arrow { margin-left: 4px; opacity: 0.4; }
+  .list-table thead th.sorted .sort-arrow { opacity: 1; color: var(--blue); }
+  .list-table tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+  }
+  .list-table tbody tr:hover { background: var(--surface2); }
+  .list-table tbody td {
+    padding: 8px 12px; white-space: nowrap; max-width: 240px;
+    overflow: hidden; text-overflow: ellipsis;
+  }
+  .list-table .name-link {
+    color: var(--blue); cursor: pointer; text-decoration: none;
+  }
+  .list-table .name-link:hover { text-decoration: underline; }
+  .list-table .cat-badge {
+    display: inline-block; padding: 2px 8px; border-radius: 4px;
+    font-size: 10px; text-transform: uppercase; font-weight: 600;
+    font-family: var(--mono); letter-spacing: 0.3px;
+  }
+  .cat-new { background: rgba(34,197,94,0.15); color: var(--green); }
+  .cat-renewal { background: rgba(107,114,128,0.2); color: var(--gray); }
+  .cat-active { background: rgba(59,130,246,0.15); color: var(--blue); }
+  .cat-pending { background: rgba(245,166,35,0.15); color: var(--amber); }
+  .cat-delinquent { background: rgba(239,68,68,0.15); color: var(--red); }
+  .cat-closed { background: rgba(55,65,81,0.3); color: var(--text-muted); }
+
+  .rt-badge {
+    display: inline-flex; align-items: center; gap: 3px;
+    color: var(--blue); font-size: 13px; cursor: help;
+  }
+
+  /* Pagination */
+  .list-pagination {
+    display: flex; align-items: center; justify-content: center;
+    gap: 8px; padding: 12px 16px; border-top: 1px solid var(--border);
+  }
+  .list-pagination button {
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text-dim); padding: 6px 12px; border-radius: 6px;
+    font-family: var(--font); font-size: 12px; cursor: pointer;
+  }
+  .list-pagination button:hover { border-color: var(--text-muted); color: var(--text); }
+  .list-pagination button:disabled { opacity: 0.3; cursor: default; }
+  .list-pagination .page-info { font-size: 12px; color: var(--text-muted); font-family: var(--mono); }
+
+  /* ---- Detail Modal ---- */
+  .modal-overlay {
+    position: fixed; inset: 0; z-index: 8000;
+    background: rgba(0,0,0,0.7); display: none;
+    align-items: center; justify-content: center; padding: 24px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); max-width: 560px; width: 100%;
+    max-height: 80vh; overflow-y: auto; position: relative;
+  }
+  .modal-close {
+    position: absolute; top: 10px; right: 12px;
+    background: none; border: none; color: var(--text-dim);
+    font-size: 20px; cursor: pointer; padding: 4px 8px;
+  }
+  .modal-close:hover { color: var(--text); }
+  .modal-body { padding: 20px; }
+  .modal-body h2 {
+    font-size: 18px; font-weight: 700; margin-bottom: 4px;
+    padding-right: 32px;
+  }
+  .modal-body .modal-dba { font-size: 13px; color: var(--text-dim); margin-bottom: 12px; }
+  .modal-section {
+    margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border);
+  }
+  .modal-section h3 {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;
+    color: var(--text-dim); margin-bottom: 8px; font-weight: 500;
+  }
+  .modal-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  }
+  .modal-field label {
+    display: block; font-size: 10px; text-transform: uppercase;
+    color: var(--text-muted); letter-spacing: 0.3px; margin-bottom: 2px;
+  }
+  .modal-field span {
+    font-size: 14px; font-family: var(--mono); color: var(--text);
+  }
+  .modal-field a {
+    color: var(--blue); text-decoration: none; font-size: 13px;
+  }
+  .modal-field a:hover { text-decoration: underline; }
+  .modal-rt {
+    background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.25);
+    border-radius: 8px; padding: 12px; margin-top: 14px;
+  }
+  .modal-rt h3 { color: var(--blue); margin-bottom: 8px; }
+  .modal-links { display: flex; gap: 10px; margin-top: 12px; }
+  .modal-links a {
+    display: inline-flex; align-items: center; gap: 4px;
+    color: var(--blue); font-size: 13px; text-decoration: none;
+  }
+  .modal-links a:hover { text-decoration: underline; }
+
+  /* ---- Scrollbar ---- */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--surface); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* ---- Leaflet popup ---- */
+  .leaflet-popup-content-wrapper {
+    background: var(--surface) !important; color: var(--text) !important;
+    border-radius: var(--radius) !important; border: 1px solid var(--border);
+    font-family: var(--font) !important; font-size: 13px;
+  }
+  .leaflet-popup-tip { background: var(--surface) !important; }
+  .leaflet-popup-content { margin: 10px 14px !important; }
 </style>
 </head>
 <body>
 
-<div class="header">
-    <div class="logo">🍸 Liquor <span>Licenses</span></div>
-    <div class="subtitle">Denver Metro Tracker</div>
-    <div class="meta" id="lastUpdated"></div>
+<!-- Auth Overlay -->
+<div id="auth-overlay">
+  <h1>🍸 Liquor License Tracker</h1>
+  <input type="password" id="auth-pw" placeholder="Password" autofocus>
+  <div class="error" id="auth-error"></div>
+  <button onclick="checkAuth()">Enter</button>
 </div>
 
-<div class="container">
-    <div class="loading" id="loading">
-        <div class="spinner"></div>
-        <p>Loading license data…</p>
+<!-- App -->
+<div id="app">
+  <header>
+    <h1>🍸 Liquor License Tracker</h1>
+    <span class="meta" id="meta-info"></span>
+  </header>
+
+  <!-- KPI Cards -->
+  <div class="kpi-row" id="kpi-row"></div>
+
+  <!-- Diff Panel -->
+  <div class="diff-panel hidden" id="diff-panel">
+    <div class="diff-header" onclick="toggleDiff()">
+      <span>⚡ What's Changed</span>
+      <span class="badge" id="diff-badge">0</span>
     </div>
+    <div class="diff-body" id="diff-body"></div>
+  </div>
 
-    <div id="app" style="display:none">
-        <div class="stats-row" id="statsRow"></div>
-
-        <div class="diff-panel" id="diffPanel" style="display:none">
-            <div class="diff-header" id="diffToggle">
-                <h3>📋 What's Changed</h3>
-                <span class="badge" id="diffBadge">0</span>
-                <span class="arrow">▼</span>
-            </div>
-            <div class="diff-body" id="diffBody"></div>
-        </div>
-
-        <div class="filters-bar">
-            <div class="filter-group">
-                <label>Search</label>
-                <input type="text" id="filterSearch" placeholder="Name, address, DBA…">
-            </div>
-            <div class="filter-group">
-                <label>Status</label>
-                <select id="filterStatus"><option value="">All statuses</option></select>
-            </div>
-            <div class="filter-group">
-                <label>License Type</label>
-                <select id="filterType"><option value="">All types</option></select>
-            </div>
-            <div class="filter-group">
-                <label>City</label>
-                <select id="filterCity"><option value="">All cities</option></select>
-            </div>
-            <div class="filter-group">
-                <label>Neighborhood</label>
-                <select id="filterNeighborhood"><option value="">All neighborhoods</option></select>
-            </div>
-            <button class="toggle-btn" id="newsworthyToggle"><span class="dot"></span> Newsworthy only</button>
-            <button class="filter-reset" id="filterReset">Reset filters</button>
-        </div>
-
-        <div class="tab-bar">
-            <button class="tab-btn active" data-tab="map">Map</button>
-            <button class="tab-btn" data-tab="table">Table</button>
-        </div>
-
-        <div class="tab-content active" id="tab-map">
-            <div id="map"></div>
-        </div>
-
-        <div class="tab-content" id="tab-table">
-            <div class="table-wrap" style="max-height:600px; overflow-y:auto;">
-                <table>
-                    <thead>
-                        <tr>
-                            <th data-sort="name">Name <span class="sort-arrow"></span></th>
-                            <th data-sort="license_type">Type <span class="sort-arrow"></span></th>
-                            <th data-sort="status">Status <span class="sort-arrow"></span></th>
-                            <th data-sort="address">Address <span class="sort-arrow"></span></th>
-                            <th data-sort="city">City <span class="sort-arrow"></span></th>
-                            <th data-sort="neighborhood">Neighborhood <span class="sort-arrow"></span></th>
-                            <th data-sort="issue_date">Issued <span class="sort-arrow"></span></th>
-                            <th data-sort="expiration_date">Expires <span class="sort-arrow"></span></th>
-                            <th>RT</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tableBody"></tbody>
-                </table>
-            </div>
-            <div class="pagination" id="pagination"></div>
-        </div>
+  <!-- Chart -->
+  <div class="chart-section">
+    <h2>New Licenses & Delinquencies — <span id="chart-year"></span></h2>
+    <div class="chart-wrap">
+      <canvas id="main-chart"></canvas>
     </div>
+  </div>
+
+  <!-- Filter Bar -->
+  <div class="filter-bar">
+    <input type="text" id="f-search" placeholder="Search name, address, license type...">
+    <select id="f-status"><option value="">All Statuses</option></select>
+    <select id="f-city"><option value="">All Cities</option></select>
+    <select id="f-neighborhood"><option value="">All Neighborhoods</option></select>
+    <button class="btn-newsworthy" id="btn-newsworthy" onclick="toggleNewsworthy()">Newsworthy</button>
+    <button class="btn-reset" onclick="resetFilters()">Reset</button>
+  </div>
+
+  <!-- Map -->
+  <div class="map-section">
+    <div id="map"></div>
+    <div class="map-legend">
+      <h4>License Category</h4>
+      <div class="legend-item"><span class="legend-dot" style="background:#22c55e"></span> New Application</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#f5a623"></span> Pending</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#ef4444"></span> Delinquent</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#3b82f6"></span> Active</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#6b7280"></span> Renewal</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#374151"></span> Closed</div>
+      <div class="legend-item" style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border)">
+        <span class="legend-dot" style="border:2px solid #3b82f6;background:transparent"></span> RT Match
+      </div>
+    </div>
+  </div>
+
+  <!-- License List -->
+  <div class="list-section">
+    <div class="list-header">
+      <h2>License Records</h2>
+      <span class="count" id="list-count">0 records</span>
+    </div>
+    <div class="list-table-wrap" style="max-height:500px;overflow-y:auto;">
+      <table class="list-table">
+        <thead id="list-thead"></thead>
+        <tbody id="list-tbody"></tbody>
+      </table>
+    </div>
+    <div class="list-pagination" id="list-pagination"></div>
+  </div>
 </div>
 
-<script src="auth.js"></script>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<!-- Detail Modal -->
+<div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
 <script>
+// ===== AUTH =====
+const AUTH_PW = 'BizDenScoops!';
+const AUTH_KEY = 'liquor_tracker_auth';
+
+function checkAuth() {
+  const pw = document.getElementById('auth-pw').value;
+  if (pw === AUTH_PW) {
+    localStorage.setItem(AUTH_KEY, Date.now().toString());
+    document.getElementById('auth-overlay').classList.add('hidden');
+    document.getElementById('app').classList.add('visible');
+    initApp();
+  } else {
+    document.getElementById('auth-error').textContent = 'Incorrect password';
+  }
+}
+
+document.getElementById('auth-pw').addEventListener('keydown', e => {
+  if (e.key === 'Enter') checkAuth();
+});
+
+// Check stored auth (30-day session)
 (function() {
-    'use strict';
-
-    let DATA = null;
-    let filtered = [];
-    let map, markerGroup;
-    let sortCol = 'name', sortDir = 1;
-    let page = 0;
-    const PAGE_SIZE = 100;
-    let newsworthyOnly = false;
-
-    const NEWSWORTHY_STATUSES = new Set([
-        'PENDING', 'DELINQUENT', 'Approved',
-        'LICENSE ISSUED - ACTIVE', 'Active',
-        'CLOSED - SURRENDERED', 'CLOSED - REVOKED'
-    ]);
-
-    function statusClass(s) {
-        if (!s) return 'closed';
-        const sl = s.toLowerCase();
-        if (sl.includes('active') || sl.includes('issued')) return 'active';
-        if (sl.includes('pending')) return 'pending';
-        if (sl.includes('delinquent')) return 'delinquent';
-        if (sl.includes('approved')) return 'approved';
-        return 'closed';
-    }
-
-    const STATUS_COLORS = { active:'#22c55e', pending:'#3b82f6', delinquent:'#f5a623', approved:'#a855f7', closed:'#5a5c66' };
-    function statusColor(s) { return STATUS_COLORS[statusClass(s)] || '#5a5c66'; }
-
-    // Pie-chart SVG markers: fill = status color, blue ring = in restaurant tracker
-    function makePieIcon(status, hasRt) {
-        const color = statusColor(status);
-        const sz = 16, r = sz / 2;
-        const stroke = hasRt ? '#3b82f6' : 'rgba(255,255,255,0.25)';
-        const sw = hasRt ? 2.5 : 1.5;
-        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}">` +
-            `<circle cx="${r}" cy="${r}" r="${r-sw/2}" fill="${color}" stroke="${stroke}" stroke-width="${sw}"/>` +
-            (hasRt ? `<circle cx="${r}" cy="${r}" r="2" fill="#3b82f6" opacity="0.9"/>` : '') +
-            `</svg>`;
-        return L.divIcon({ className:'', iconSize:[sz,sz], iconAnchor:[r,r], html:svg });
-    }
-
-    function gmapsUrl(addr, city) {
-        return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent((addr?addr+', ':'') + (city||'') + ', CO');
-    }
-    function streetViewUrl(lat, lng) {
-        return `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lng}`;
-    }
-
-    async function init() {
-        try {
-            const resp = await fetch('liquor-data.json');
-            DATA = await resp.json();
-        } catch(e) {
-            document.getElementById('loading').innerHTML = '<p style="color:#ef4444">Failed to load data. Run the scraper first.</p>';
-            return;
-        }
-
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('app').style.display = 'block';
-
-        const gen = DATA.metadata.generated;
-        if (gen) {
-            const d = new Date(gen);
-            document.getElementById('lastUpdated').textContent = 'Updated ' + d.toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'});
-        }
-
-        buildStats();
-        buildDiff();
-        buildFilters();
-        initMap();
-        applyFilters();
-
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                btn.classList.add('active');
-                document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
-                if (btn.dataset.tab === 'map') setTimeout(() => map.invalidateSize(), 100);
-            });
-        });
-
-        document.querySelectorAll('thead th[data-sort]').forEach(th => {
-            th.addEventListener('click', () => {
-                const col = th.dataset.sort;
-                if (sortCol === col) sortDir *= -1;
-                else { sortCol = col; sortDir = 1; }
-                renderTable();
-            });
-        });
-    }
-
-    function buildStats() {
-        const bs = DATA.summary.by_status;
-        const active = (bs['LICENSE ISSUED - ACTIVE']||0) + (bs['Active']||0);
-        const rtCount = DATA.records.filter(r => r.rt_match).length;
-        const cards = [
-            { label:'Total Records', value:DATA.records.length.toLocaleString(), cls:'blue' },
-            { label:'Active', value:active.toLocaleString(), cls:'green' },
-            { label:'Recently Approved', value:(bs['Approved']||0).toLocaleString(), cls:'purple' },
-            { label:'Pending', value:(bs['PENDING']||0).toLocaleString(), cls:'amber' },
-            { label:'Delinquent', value:(bs['DELINQUENT']||0).toLocaleString(), cls:'red' },
-            { label:'Restaurant Tracker ✦', value:rtCount.toLocaleString(), cls:'blue' },
-        ];
-        document.getElementById('statsRow').innerHTML = cards.map(c =>
-            `<div class="stat-card"><div class="label">${c.label}</div><div class="value ${c.cls}">${c.value}</div></div>`
-        ).join('');
-    }
-
-    function buildDiff() {
-        const diff = DATA.diff;
-        const total = diff.new_count + diff.removed_count + diff.status_changes_count;
-        if (total === 0) return;
-        document.getElementById('diffPanel').style.display = 'block';
-        document.getElementById('diffBadge').textContent = total;
-        let html = '';
-        diff.new.forEach(r => { html += `<div class="diff-item"><span class="tag new">new</span> <span class="name">${esc(r.name)}</span> <span class="detail">— ${esc(r.license_type)} at ${esc(r.address)}, ${esc(r.city)}</span></div>`; });
-        diff.removed.forEach(r => { html += `<div class="diff-item"><span class="tag removed">gone</span> <span class="name">${esc(r.name)}</span> <span class="detail">— ${esc(r.license_type)} at ${esc(r.address)}</span></div>`; });
-        diff.status_changes.forEach(c => { html += `<div class="diff-item"><span class="tag changed">changed</span> <span class="name">${esc(c.name)}</span> <span class="detail">— ${esc(c.old_status)} → ${esc(c.new_status)}</span></div>`; });
-        document.getElementById('diffBody').innerHTML = html || '<p style="color:var(--text-dim);font-size:13px">No changes.</p>';
-        document.getElementById('diffToggle').addEventListener('click', function() {
-            this.classList.toggle('open');
-            document.getElementById('diffBody').classList.toggle('show');
-        });
-    }
-
-    function buildFilters() {
-        const recs = DATA.records;
-        const addOpts = (id, vals) => { const sel = document.getElementById(id); vals.forEach(v => { const o = document.createElement('option'); o.value=v; o.textContent=v; sel.appendChild(o); }); };
-        addOpts('filterStatus', [...new Set(recs.map(r=>r.status).filter(Boolean))].sort());
-        addOpts('filterType', [...new Set(recs.map(r=>r.license_type).filter(Boolean))].sort());
-        addOpts('filterCity', [...new Set(recs.map(r=>r.city).filter(Boolean))].sort());
-        addOpts('filterNeighborhood', [...new Set(recs.map(r=>r.neighborhood).filter(Boolean))].sort());
-
-        let deb;
-        document.getElementById('filterSearch').addEventListener('input', () => { clearTimeout(deb); deb = setTimeout(applyFilters, 200); });
-        ['filterStatus','filterType','filterCity','filterNeighborhood'].forEach(id => {
-            document.getElementById(id).addEventListener('change', applyFilters);
-        });
-        document.getElementById('newsworthyToggle').addEventListener('click', function() {
-            newsworthyOnly = !newsworthyOnly;
-            this.classList.toggle('active', newsworthyOnly);
-            applyFilters();
-        });
-        document.getElementById('filterReset').addEventListener('click', () => {
-            document.getElementById('filterSearch').value = '';
-            document.getElementById('filterStatus').value = '';
-            document.getElementById('filterType').value = '';
-            document.getElementById('filterCity').value = '';
-            document.getElementById('filterNeighborhood').value = '';
-            newsworthyOnly = false;
-            document.getElementById('newsworthyToggle').classList.remove('active');
-            applyFilters();
-        });
-    }
-
-    function applyFilters() {
-        const search = document.getElementById('filterSearch').value.toLowerCase().trim();
-        const status = document.getElementById('filterStatus').value;
-        const type = document.getElementById('filterType').value;
-        const city = document.getElementById('filterCity').value;
-        const hood = document.getElementById('filterNeighborhood').value;
-
-        filtered = DATA.records.filter(r => {
-            if (newsworthyOnly && !NEWSWORTHY_STATUSES.has(r.status)) return false;
-            if (status && r.status !== status) return false;
-            if (type && r.license_type !== type) return false;
-            if (city && r.city !== city) return false;
-            if (hood && r.neighborhood !== hood) return false;
-            if (search) {
-                const hay = [r.name,r.dba,r.address,r.city,r.neighborhood,r.license_type].join(' ').toLowerCase();
-                if (!hay.includes(search)) return false;
-            }
-            return true;
-        });
-        page = 0;
-        renderMap();
-        renderTable();
-    }
-
-    function initMap() {
-        map = L.map('map', { preferCanvas:true }).setView([39.74, -104.99], 11);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            maxZoom:19,
-            attribution:'&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
-        }).addTo(map);
-
-        markerGroup = L.markerClusterGroup({ maxClusterRadius:40, spiderfyOnMaxZoom:true, showCoverageOnHover:false, disableClusteringAtZoom:16 });
-        map.addLayer(markerGroup);
-
-        const legend = L.control({ position:'bottomright' });
-        legend.onAdd = function() {
-            const d = L.DomUtil.create('div','map-legend');
-            d.innerHTML = `<div class="legend-title">Status</div>
-                <div class="legend-item"><svg width="12" height="12"><circle cx="6" cy="6" r="5" fill="#22c55e"/></svg> Active</div>
-                <div class="legend-item"><svg width="12" height="12"><circle cx="6" cy="6" r="5" fill="#3b82f6"/></svg> Pending</div>
-                <div class="legend-item"><svg width="12" height="12"><circle cx="6" cy="6" r="5" fill="#f5a623"/></svg> Delinquent</div>
-                <div class="legend-item"><svg width="12" height="12"><circle cx="6" cy="6" r="5" fill="#a855f7"/></svg> Approved</div>
-                <div class="legend-item"><svg width="12" height="12"><circle cx="6" cy="6" r="5" fill="#5a5c66"/></svg> Closed</div>
-                <div style="border-top:1px solid #1e1f25;margin-top:6px;padding-top:6px">
-                <div class="legend-item"><svg width="12" height="12"><circle cx="6" cy="6" r="5" fill="#22c55e" stroke="#3b82f6" stroke-width="2.5"/></svg> In Restaurant Tracker</div>
-                </div>`;
-            return d;
-        };
-        legend.addTo(map);
-    }
-
-    function renderMap() {
-        markerGroup.clearLayers();
-        const geo = filtered.filter(r => r.lat && r.lng);
-
-        geo.forEach(r => {
-            const marker = L.marker([r.lat, r.lng], { icon: makePieIcon(r.status, !!r.rt_match) });
-            const color = statusColor(r.status);
-            let p = `<div class="popup-name">${esc(r.name)}</div>`;
-            if (r.dba && r.dba !== r.name) p += `<div class="popup-row" style="color:var(--text-dim);font-style:italic">DBA: ${esc(r.dba)}</div>`;
-            p += `<div class="popup-type">${esc(r.license_type)}</div>`;
-            p += `<div class="popup-row"><span class="popup-status" style="background:${color}20;color:${color}">${esc(r.status)}</span></div>`;
-
-            const addr = r.address ? `${r.address}, ${r.city}` : r.city;
-            p += `<div class="popup-row">${esc(addr)}</div>`;
-            p += `<div class="popup-links">`;
-            p += `<a href="${gmapsUrl(r.address,r.city)}" target="_blank" rel="noopener">📍 Google Maps</a>`;
-            if (r.lat && r.lng) p += `<a href="${streetViewUrl(r.lat,r.lng)}" target="_blank" rel="noopener">🔭 Street View</a>`;
-            p += `</div>`;
-
-            if (r.neighborhood) p += `<div class="popup-row">📍 ${esc(r.neighborhood)}</div>`;
-            if (r.issue_date) p += `<div class="popup-row">Issued: ${r.issue_date}</div>`;
-            if (r.expiration_date) p += `<div class="popup-row">Expires: ${r.expiration_date}</div>`;
-            if (r.hearing_date) p += `<div class="popup-row" style="color:var(--amber)">📅 Hearing: ${r.hearing_date}${r.hearing_time ? ' '+r.hearing_time : ''}</div>`;
-
-            if (r.rt_match) {
-                const rt = r.rt_match;
-                p += `<div class="popup-rt"><div class="rt-label">Restaurant Tracker</div>`;
-                p += `<div class="rt-detail"><strong>${esc(rt.name)}</strong>`;
-                if (rt.type) p += ` · ${esc(rt.type)}`;
-                p += `</div>`;
-                if (rt.rating) p += `<div class="rt-detail">⭐ ${rt.rating}${rt.reviews ? ' ('+rt.reviews.toLocaleString()+' reviews)':''}</div>`;
-                if (rt.status && rt.status !== 'OPERATIONAL') p += `<div class="rt-detail" style="color:var(--red)">Google: ${esc(rt.status)}</div>`;
-                p += `</div>`;
-            }
-
-            marker.bindPopup(p, { maxWidth:300 });
-            markerGroup.addLayer(marker);
-        });
-    }
-
-    function renderTable() {
-        const sorted = [...filtered].sort((a,b) => {
-            let va = a[sortCol]||'', vb = b[sortCol]||'';
-            if (typeof va === 'string') va = va.toLowerCase();
-            if (typeof vb === 'string') vb = vb.toLowerCase();
-            if (va < vb) return -1*sortDir;
-            if (va > vb) return 1*sortDir;
-            return 0;
-        });
-
-        document.querySelectorAll('thead th[data-sort]').forEach(th => {
-            const arrow = th.querySelector('.sort-arrow');
-            arrow.textContent = th.dataset.sort === sortCol ? (sortDir===1?'▲':'▼') : '';
-        });
-
-        const totalPages = Math.ceil(sorted.length / PAGE_SIZE);
-        const start = page * PAGE_SIZE;
-        const pageData = sorted.slice(start, start + PAGE_SIZE);
-
-        document.getElementById('tableBody').innerHTML = pageData.map(r => {
-            const cls = statusClass(r.status);
-            const gm = gmapsUrl(r.address,r.city);
-            const sv = r.lat && r.lng ? streetViewUrl(r.lat,r.lng) : null;
-            const rtTip = r.rt_match ? `${r.rt_match.name}${r.rt_match.rating?' · ⭐'+r.rt_match.rating:''}${r.rt_match.reviews?' ('+r.rt_match.reviews+')':''}` : '';
-            const rtBadge = r.rt_match ? `<span title="${esc(rtTip)}" class="rt-badge">✦</span>` : '';
-            return `<tr>
-                <td class="wrap"><strong>${esc(r.name)}</strong>${r.dba&&r.dba!==r.name?'<br><span style="color:var(--text-dim);font-size:11px">DBA: '+esc(r.dba)+'</span>':''}</td>
-                <td>${esc(r.license_type)}</td>
-                <td><span class="status-badge ${cls}">${esc(r.status)}</span></td>
-                <td><a href="${gm}" target="_blank" rel="noopener">${esc(r.address)}</a>${sv?' <a href="'+sv+'" target="_blank" rel="noopener" title="Street View" style="font-size:11px">🔭</a>':''}</td>
-                <td>${esc(r.city)}</td>
-                <td>${esc(r.neighborhood||'—')}</td>
-                <td style="font-family:var(--font-mono);font-size:12px">${r.issue_date||'—'}</td>
-                <td style="font-family:var(--font-mono);font-size:12px">${r.expiration_date||'—'}</td>
-                <td style="text-align:center">${rtBadge}</td>
-            </tr>`;
-        }).join('');
-
-        document.getElementById('pagination').innerHTML = `
-            <div class="info">Showing ${start+1}–${Math.min(start+PAGE_SIZE,sorted.length)} of ${sorted.length.toLocaleString()} records</div>
-            <div class="pages">
-                <button ${page===0?'disabled':''} onclick="window._pageTo(0)">«</button>
-                <button ${page===0?'disabled':''} onclick="window._pageTo(${page-1})">‹</button>
-                <button class="active">${page+1} / ${totalPages||1}</button>
-                <button ${page>=totalPages-1?'disabled':''} onclick="window._pageTo(${page+1})">›</button>
-                <button ${page>=totalPages-1?'disabled':''} onclick="window._pageTo(${totalPages-1})">»</button>
-            </div>`;
-    }
-
-    window._pageTo = function(p) { page = Math.max(0,p); renderTable(); };
-    function esc(s) { if(!s)return''; const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
-
-    if (document.readyState==='loading') document.addEventListener('DOMContentLoaded',init);
-    else init();
+  const stored = localStorage.getItem(AUTH_KEY);
+  if (stored && Date.now() - parseInt(stored) < 30 * 24 * 60 * 60 * 1000) {
+    document.getElementById('auth-overlay').classList.add('hidden');
+    document.getElementById('app').classList.add('visible');
+    setTimeout(initApp, 50);
+  }
 })();
+
+// ===== GLOBALS =====
+let DATA = null;
+let filteredRecords = [];
+let activeKPI = null;
+let newsworthyActive = false;
+let sortCol = null;
+let sortAsc = true;
+let listPage = 0;
+const PAGE_SIZE = 100;
+let map, clusterGroup;
+
+const CATEGORY_COLORS = {
+  new_application: '#22c55e',
+  pending: '#f5a623',
+  delinquent: '#ef4444',
+  active: '#3b82f6',
+  renewal: '#6b7280',
+  closed: '#374151',
+  unknown: '#374151'
+};
+
+const CATEGORY_LABELS = {
+  new_application: 'New',
+  pending: 'Pending',
+  delinquent: 'Delinquent',
+  active: 'Active',
+  renewal: 'Renewal',
+  closed: 'Closed',
+  unknown: 'Unknown'
+};
+
+const NEWSWORTHY_CATEGORIES = ['new_application', 'pending', 'delinquent'];
+
+// ===== INIT =====
+async function initApp() {
+  try {
+    const resp = await fetch('liquor-data.json');
+    DATA = await resp.json();
+  } catch (e) {
+    console.error('Failed to load data:', e);
+    return;
+  }
+
+  document.getElementById('meta-info').textContent =
+    `${DATA.metadata.total_records.toLocaleString()} records • Updated ${new Date(DATA.metadata.generated).toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'})}`;
+
+  buildKPIs();
+  buildDiffPanel();
+  buildChart();
+  populateFilters();
+  initMap();
+  applyFilters();
+
+  // Filter event listeners
+  document.getElementById('f-search').addEventListener('input', debounce(applyFilters, 200));
+  document.getElementById('f-status').addEventListener('change', applyFilters);
+  document.getElementById('f-city').addEventListener('change', applyFilters);
+  document.getElementById('f-neighborhood').addEventListener('change', applyFilters);
+}
+
+function debounce(fn, ms) {
+  let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
+}
+
+// ===== KPI CARDS =====
+function buildKPIs() {
+  const records = DATA.records;
+  const now = new Date();
+  const thirtyDaysAgo = new Date(now - 30 * 24 * 60 * 60 * 1000);
+
+  const total = records.length;
+  const newApps = records.filter(r => r.category === 'new_application').length;
+  const approved30 = records.filter(r => {
+    if (r.source !== 'state_approved') return false;
+    if (!r.issue_date) return true;
+    return new Date(r.issue_date) >= thirtyDaysAgo;
+  }).length;
+  const pending = records.filter(r => r.category === 'pending').length;
+  const delinquent = records.filter(r => r.category === 'delinquent').length;
+  const rtMatches = records.filter(r => r.rt_match).length;
+
+  const kpis = [
+    { label: 'Total Records', value: total, filter: 'all', sub: '' },
+    { label: 'New Applications', value: newApps, filter: 'new_application', sub: 'Last 12 months' },
+    { label: 'Recently Approved', value: approved30, filter: 'approved', sub: 'Last 30 days' },
+    { label: 'Pending', value: pending, filter: 'pending', sub: 'In progress' },
+    { label: 'Delinquent', value: delinquent, filter: 'delinquent', sub: 'Behind on fees' },
+    { label: 'RT Matches', value: rtMatches, filter: 'rt_match', sub: 'In restaurant tracker' },
+  ];
+
+  const row = document.getElementById('kpi-row');
+  row.innerHTML = kpis.map(k => `
+    <div class="kpi-card" data-filter="${k.filter}" onclick="toggleKPI('${k.filter}')">
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value">${k.value.toLocaleString()}</div>
+      ${k.sub ? `<div class="kpi-sub">${k.sub}</div>` : ''}
+    </div>
+  `).join('');
+}
+
+function toggleKPI(filter) {
+  if (activeKPI === filter) {
+    activeKPI = null;
+  } else {
+    activeKPI = filter;
+  }
+  document.querySelectorAll('.kpi-card').forEach(card => {
+    card.classList.toggle('active', card.dataset.filter === activeKPI);
+  });
+  applyFilters();
+}
+
+// ===== DIFF PANEL =====
+function buildDiffPanel() {
+  const diff = DATA.diff;
+  const totalChanges = diff.new_count + diff.removed_count + diff.status_changes_count;
+  if (totalChanges === 0) return;
+
+  const panel = document.getElementById('diff-panel');
+  panel.classList.remove('hidden');
+  document.getElementById('diff-badge').textContent = totalChanges;
+
+  let html = '';
+  diff.new.slice(0, 20).forEach(r => {
+    html += `<div class="diff-item"><span class="diff-tag new">NEW</span> ${esc(r.name)} — ${esc(r.address)}</div>`;
+  });
+  diff.removed.slice(0, 20).forEach(r => {
+    html += `<div class="diff-item"><span class="diff-tag removed">GONE</span> ${esc(r.name)} — ${esc(r.address)}</div>`;
+  });
+  diff.status_changes.slice(0, 20).forEach(r => {
+    html += `<div class="diff-item"><span class="diff-tag changed">CHG</span> ${esc(r.name)}: ${esc(r.old_status)} → ${esc(r.new_status)}</div>`;
+  });
+  document.getElementById('diff-body').innerHTML = html;
+}
+
+function toggleDiff() {
+  document.getElementById('diff-body').classList.toggle('open');
+}
+
+// ===== CHART =====
+function buildChart() {
+  const chart = DATA.chart;
+  if (!chart) return;
+
+  document.getElementById('chart-year').textContent = chart.current_year;
+
+  const ctx = document.getElementById('main-chart').getContext('2d');
+
+  // Negate delinquency values for below-axis display
+  const delinqBars = chart.delinquencies_current.map(v => -v);
+  const cumDelinqCurrent = (chart.cumulative_delinq_current || []).map(v => v != null ? -v : null);
+  const cumDelinqPrior = (chart.cumulative_delinq_prior || []).map(v => v != null ? -v : null);
+
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: chart.months,
+      datasets: [
+        {
+          label: `New Licenses ${chart.current_year}`,
+          data: chart.new_licenses_current,
+          backgroundColor: 'rgba(34, 197, 94, 0.7)',
+          borderColor: '#22c55e',
+          borderWidth: 1,
+          yAxisID: 'y',
+          order: 2,
+        },
+        {
+          label: `Delinquencies ${chart.current_year}`,
+          data: delinqBars,
+          backgroundColor: 'rgba(239, 68, 68, 0.7)',
+          borderColor: '#ef4444',
+          borderWidth: 1,
+          yAxisID: 'y',
+          order: 2,
+        },
+        {
+          label: `Cumulative New ${chart.current_year}`,
+          data: chart.cumulative_new_current,
+          type: 'line',
+          borderColor: '#22c55e',
+          backgroundColor: 'transparent',
+          borderWidth: 2,
+          pointRadius: 3,
+          pointBackgroundColor: '#22c55e',
+          tension: 0.3,
+          yAxisID: 'y1',
+          order: 1,
+          spanGaps: false,
+        },
+        {
+          label: `Cumulative New ${chart.prior_year}`,
+          data: chart.cumulative_new_prior,
+          type: 'line',
+          borderColor: 'rgba(34, 197, 94, 0.35)',
+          backgroundColor: 'transparent',
+          borderWidth: 2,
+          borderDash: [6, 3],
+          pointRadius: 0,
+          tension: 0.3,
+          yAxisID: 'y1',
+          order: 1,
+        },
+        {
+          label: `Cumulative Delinq ${chart.current_year}`,
+          data: cumDelinqCurrent,
+          type: 'line',
+          borderColor: '#ef4444',
+          backgroundColor: 'transparent',
+          borderWidth: 2,
+          pointRadius: 3,
+          pointBackgroundColor: '#ef4444',
+          tension: 0.3,
+          yAxisID: 'y1',
+          order: 1,
+          spanGaps: false,
+        },
+        {
+          label: `Cumulative Delinq ${chart.prior_year}`,
+          data: cumDelinqPrior,
+          type: 'line',
+          borderColor: 'rgba(239, 68, 68, 0.35)',
+          backgroundColor: 'transparent',
+          borderWidth: 2,
+          borderDash: [6, 3],
+          pointRadius: 0,
+          tension: 0.3,
+          yAxisID: 'y1',
+          order: 1,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          display: true,
+          position: 'bottom',
+          labels: {
+            color: '#8b8f9a',
+            font: { family: "'Outfit', sans-serif", size: 11 },
+            boxWidth: 14,
+            padding: 12,
+          },
+        },
+        tooltip: {
+          backgroundColor: '#0d0e12',
+          borderColor: '#23262e',
+          borderWidth: 1,
+          titleFont: { family: "'Outfit', sans-serif" },
+          bodyFont: { family: "'JetBrains Mono', monospace", size: 12 },
+          callbacks: {
+            label: function(ctx) {
+              const v = ctx.parsed.y;
+              const absV = Math.abs(v);
+              return `${ctx.dataset.label}: ${absV}`;
+            }
+          }
+        },
+      },
+      scales: {
+        x: {
+          grid: { color: 'rgba(35,38,46,0.5)' },
+          ticks: { color: '#8b8f9a', font: { family: "'Outfit', sans-serif", size: 11 } },
+        },
+        y: {
+          position: 'left',
+          title: { display: true, text: 'Monthly Count', color: '#8b8f9a', font: { family: "'Outfit', sans-serif" } },
+          grid: { color: 'rgba(35,38,46,0.5)' },
+          ticks: {
+            color: '#8b8f9a',
+            font: { family: "'JetBrains Mono', monospace", size: 11 },
+            callback: v => Math.abs(v)
+          },
+        },
+        y1: {
+          position: 'right',
+          title: { display: true, text: 'Cumulative', color: '#8b8f9a', font: { family: "'Outfit', sans-serif" } },
+          grid: { drawOnChartArea: false },
+          ticks: {
+            color: '#8b8f9a',
+            font: { family: "'JetBrains Mono', monospace", size: 11 },
+            callback: v => Math.abs(v)
+          },
+        },
+      },
+    },
+  });
+}
+
+// ===== POPULATE FILTER DROPDOWNS =====
+function populateFilters() {
+  const statuses = [...new Set(DATA.records.map(r => r.status).filter(Boolean))].sort();
+  const cities = [...new Set(DATA.records.map(r => r.city).filter(Boolean))].sort();
+  const neighborhoods = [...new Set(DATA.records.map(r => r.neighborhood).filter(Boolean))].sort();
+
+  const fStatus = document.getElementById('f-status');
+  statuses.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; fStatus.appendChild(o); });
+
+  const fCity = document.getElementById('f-city');
+  cities.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; fCity.appendChild(o); });
+
+  const fNeighborhood = document.getElementById('f-neighborhood');
+  neighborhoods.forEach(n => { const o = document.createElement('option'); o.value = n; o.textContent = n; fNeighborhood.appendChild(o); });
+}
+
+// ===== FILTER LOGIC =====
+function applyFilters() {
+  const search = (document.getElementById('f-search').value || '').toLowerCase();
+  const status = document.getElementById('f-status').value;
+  const city = document.getElementById('f-city').value;
+  const neighborhood = document.getElementById('f-neighborhood').value;
+
+  const now = new Date();
+  const thirtyDaysAgo = new Date(now - 30 * 24 * 60 * 60 * 1000);
+
+  filteredRecords = DATA.records.filter(r => {
+    // KPI filter
+    if (activeKPI && activeKPI !== 'all') {
+      if (activeKPI === 'approved') {
+        if (r.source !== 'state_approved') return false;
+        if (r.issue_date && new Date(r.issue_date) < thirtyDaysAgo) return false;
+      } else if (activeKPI === 'rt_match') {
+        if (!r.rt_match) return false;
+      } else {
+        if (r.category !== activeKPI) return false;
+      }
+    }
+
+    // Newsworthy filter
+    if (newsworthyActive) {
+      if (!NEWSWORTHY_CATEGORIES.includes(r.category) && r.source !== 'state_approved') return false;
+    }
+
+    // Text search
+    if (search) {
+      const haystack = `${r.name} ${r.dba} ${r.address} ${r.license_type} ${r.neighborhood}`.toLowerCase();
+      if (!haystack.includes(search)) return false;
+    }
+
+    // Dropdowns
+    if (status && r.status !== status) return false;
+    if (city && r.city !== city) return false;
+    if (neighborhood && r.neighborhood !== neighborhood) return false;
+
+    return true;
+  });
+
+  updateMap();
+  renderList();
+}
+
+function toggleNewsworthy() {
+  newsworthyActive = !newsworthyActive;
+  document.getElementById('btn-newsworthy').classList.toggle('active', newsworthyActive);
+  applyFilters();
+}
+
+function resetFilters() {
+  activeKPI = null;
+  newsworthyActive = false;
+  document.getElementById('f-search').value = '';
+  document.getElementById('f-status').value = '';
+  document.getElementById('f-city').value = '';
+  document.getElementById('f-neighborhood').value = '';
+  document.getElementById('btn-newsworthy').classList.remove('active');
+  document.querySelectorAll('.kpi-card').forEach(c => c.classList.remove('active'));
+  applyFilters();
+}
+
+// ===== MAP =====
+function initMap() {
+  map = L.map('map', { zoomControl: true }).setView([39.74, -104.99], 11);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; <a href="https://carto.com/">CARTO</a>',
+    subdomains: 'abcd',
+    maxZoom: 19,
+  }).addTo(map);
+
+  clusterGroup = L.markerClusterGroup({
+    maxClusterRadius: 50,
+    iconCreateFunction: createDonutIcon,
+    spiderfyOnMaxZoom: true,
+    showCoverageOnHover: false,
+  });
+  map.addLayer(clusterGroup);
+}
+
+function createDonutIcon(cluster) {
+  const children = cluster.getAllChildMarkers();
+  const total = children.length;
+
+  // Count by category
+  const counts = {};
+  children.forEach(m => {
+    const cat = m.options.category || 'unknown';
+    counts[cat] = (counts[cat] || 0) + 1;
+  });
+
+  // Size based on count
+  const size = Math.min(36 + Math.sqrt(total) * 6, 72);
+  const r = size / 2;
+  const outerR = r * 0.85;
+  const innerR = r * 0.52;
+
+  // Build donut arcs
+  let arcs = '';
+  let startAngle = -Math.PI / 2;
+  const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+
+  for (const [cat, count] of entries) {
+    const angle = (count / total) * 2 * Math.PI;
+    const endAngle = startAngle + angle;
+
+    if (angle >= 2 * Math.PI - 0.001) {
+      // Full circle
+      arcs += `<circle cx="${r}" cy="${r}" r="${(outerR + innerR) / 2}" fill="none" stroke="${CATEGORY_COLORS[cat] || '#374151'}" stroke-width="${outerR - innerR}"/>`;
+    } else {
+      const x1 = r + outerR * Math.cos(startAngle);
+      const y1 = r + outerR * Math.sin(startAngle);
+      const x2 = r + outerR * Math.cos(endAngle);
+      const y2 = r + outerR * Math.sin(endAngle);
+      const x3 = r + innerR * Math.cos(endAngle);
+      const y3 = r + innerR * Math.sin(endAngle);
+      const x4 = r + innerR * Math.cos(startAngle);
+      const y4 = r + innerR * Math.sin(startAngle);
+      const largeArc = angle > Math.PI ? 1 : 0;
+
+      arcs += `<path d="M${x1},${y1} A${outerR},${outerR} 0 ${largeArc},1 ${x2},${y2} L${x3},${y3} A${innerR},${innerR} 0 ${largeArc},0 ${x4},${y4} Z" fill="${CATEGORY_COLORS[cat] || '#374151'}"/>`;
+    }
+    startAngle = endAngle;
+  }
+
+  const svg = `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">
+    ${arcs}
+    <circle cx="${r}" cy="${r}" r="${innerR - 1}" fill="#0d0e12"/>
+    <text x="${r}" y="${r}" text-anchor="middle" dy="0.35em" fill="#e2e4e9" font-family="'JetBrains Mono',monospace" font-size="${size < 44 ? 10 : 13}" font-weight="600">${total}</text>
+  </svg>`;
+
+  return L.divIcon({
+    html: svg,
+    className: 'donut-cluster',
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+  });
+}
+
+function createMarkerIcon(record) {
+  const cat = record.category || 'unknown';
+  const color = CATEGORY_COLORS[cat] || '#374151';
+  const hasRT = !!record.rt_match;
+  const size = 14;
+
+  let svg = `<svg width="${size + 6}" height="${size + 6}" viewBox="0 0 ${size + 6} ${size + 6}" xmlns="http://www.w3.org/2000/svg">`;
+  if (hasRT) {
+    svg += `<circle cx="${(size+6)/2}" cy="${(size+6)/2}" r="${size/2 + 2}" fill="none" stroke="#3b82f6" stroke-width="2"/>`;
+  }
+  svg += `<circle cx="${(size+6)/2}" cy="${(size+6)/2}" r="${size/2 - 1}" fill="${color}" opacity="0.9"/>`;
+  svg += `</svg>`;
+
+  return L.divIcon({
+    html: svg,
+    className: 'donut-cluster',
+    iconSize: [size + 6, size + 6],
+    iconAnchor: [(size + 6) / 2, (size + 6) / 2],
+  });
+}
+
+function updateMap() {
+  if (!clusterGroup) return;
+  clusterGroup.clearLayers();
+
+  const markers = [];
+  for (const rec of filteredRecords) {
+    if (!rec.lat || !rec.lng) continue;
+    const marker = L.marker([rec.lat, rec.lng], {
+      icon: createMarkerIcon(rec),
+      category: rec.category || 'unknown',
+    });
+
+    // Popup
+    let popupHtml = `<div style="min-width:200px">`;
+    popupHtml += `<div style="font-weight:600;font-size:14px;margin-bottom:4px">${esc(rec.name || rec.dba)}</div>`;
+    if (rec.dba && rec.name && rec.dba !== rec.name) {
+      popupHtml += `<div style="color:#8b8f9a;font-size:12px;margin-bottom:6px">DBA: ${esc(rec.dba)}</div>`;
+    }
+    popupHtml += `<div style="font-size:12px;margin-bottom:2px">${esc(rec.address)}, ${esc(rec.city)}</div>`;
+    popupHtml += `<div style="font-size:12px;margin-bottom:6px">${esc(rec.license_type)} • <span style="color:${CATEGORY_COLORS[rec.category]}">${CATEGORY_LABELS[rec.category] || rec.category}</span></div>`;
+    if (rec.status) popupHtml += `<div style="font-size:11px;color:#8b8f9a">Status: ${esc(rec.status)}</div>`;
+    if (rec.issue_date) popupHtml += `<div style="font-size:11px;color:#8b8f9a">Issued: ${rec.issue_date}</div>`;
+
+    // Links
+    const gMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(rec.address + ', ' + rec.city + ', CO')}`;
+    const svUrl = `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${rec.lat},${rec.lng}`;
+    popupHtml += `<div style="margin-top:6px;display:flex;gap:10px">`;
+    popupHtml += `<a href="${gMapsUrl}" target="_blank" style="color:#3b82f6;font-size:11px;text-decoration:none">📍 Google Maps</a>`;
+    popupHtml += `<a href="${svUrl}" target="_blank" style="color:#3b82f6;font-size:11px;text-decoration:none">🔭 Street View</a>`;
+    popupHtml += `</div>`;
+
+    if (rec.rt_match) {
+      popupHtml += `<div style="margin-top:8px;padding:6px 8px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.25);border-radius:6px;font-size:11px">`;
+      popupHtml += `<div style="color:#3b82f6;font-weight:600;margin-bottom:2px">✦ Restaurant Tracker</div>`;
+      popupHtml += `<div>${esc(rec.rt_match.name)} • ${rec.rt_match.rating || '—'}★ (${rec.rt_match.reviews || 0} reviews)</div>`;
+      popupHtml += `<div style="color:#8b8f9a">${esc(rec.rt_match.type || '')} • ${esc(rec.rt_match.status || '')}</div>`;
+      popupHtml += `</div>`;
+    }
+    popupHtml += `</div>`;
+
+    marker.bindPopup(popupHtml, { maxWidth: 320 });
+    markers.push(marker);
+  }
+
+  clusterGroup.addLayers(markers);
+}
+
+// ===== LICENSE LIST =====
+function renderList() {
+  const count = filteredRecords.length;
+  document.getElementById('list-count').textContent = `${count.toLocaleString()} records`;
+
+  // Sort
+  let sorted = [...filteredRecords];
+  if (sortCol !== null) {
+    sorted.sort((a, b) => {
+      let va = getCellValue(a, sortCol);
+      let vb = getCellValue(b, sortCol);
+      if (va == null) va = '';
+      if (vb == null) vb = '';
+      if (typeof va === 'string') va = va.toLowerCase();
+      if (typeof vb === 'string') vb = vb.toLowerCase();
+      if (va < vb) return sortAsc ? -1 : 1;
+      if (va > vb) return sortAsc ? 1 : -1;
+      return 0;
+    });
+  }
+
+  // Pagination
+  const totalPages = Math.ceil(sorted.length / PAGE_SIZE);
+  if (listPage >= totalPages) listPage = Math.max(0, totalPages - 1);
+  const start = listPage * PAGE_SIZE;
+  const pageRecords = sorted.slice(start, start + PAGE_SIZE);
+
+  // Header
+  const cols = [
+    { key: 'name', label: 'Business Name' },
+    { key: 'category', label: 'Category' },
+    { key: 'license_type', label: 'License Type' },
+    { key: 'status', label: 'Status' },
+    { key: 'address', label: 'Address' },
+    { key: 'city', label: 'City' },
+    { key: 'neighborhood', label: 'Neighborhood' },
+    { key: 'issue_date', label: 'Issued' },
+    { key: 'rt_match', label: 'RT' },
+  ];
+
+  document.getElementById('list-thead').innerHTML = '<tr>' + cols.map((c, i) => {
+    const isSorted = sortCol === c.key;
+    const arrow = isSorted ? (sortAsc ? '▲' : '▼') : '▲';
+    return `<th class="${isSorted ? 'sorted' : ''}" onclick="sortList('${c.key}')">${c.label} <span class="sort-arrow">${arrow}</span></th>`;
+  }).join('') + '</tr>';
+
+  // Body
+  const tbody = document.getElementById('list-tbody');
+  tbody.innerHTML = pageRecords.map(r => {
+    const catClass = `cat-${r.category === 'new_application' ? 'new' : r.category || 'unknown'}`;
+    const catLabel = CATEGORY_LABELS[r.category] || r.category || '—';
+    const rtCell = r.rt_match ? `<span class="rt-badge" title="${esc(r.rt_match.name)} • ${r.rt_match.rating||'—'}★">✦</span>` : '';
+    const addrUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.address + ', ' + r.city + ', CO')}`;
+    return `<tr>
+      <td><a class="name-link" onclick="openDetail('${esc(r.id)}')">${esc(r.name || r.dba || '—')}</a></td>
+      <td><span class="cat-badge ${catClass}">${catLabel}</span></td>
+      <td>${esc(r.license_type || '—')}</td>
+      <td>${esc(r.status || '—')}</td>
+      <td><a href="${addrUrl}" target="_blank" style="color:var(--text);text-decoration:none" title="Open in Google Maps">${esc(r.address || '—')}</a></td>
+      <td>${esc(r.city || '—')}</td>
+      <td>${esc(r.neighborhood || '—')}</td>
+      <td style="font-family:var(--mono);font-size:12px">${r.issue_date || '—'}</td>
+      <td>${rtCell}</td>
+    </tr>`;
+  }).join('');
+
+  // Pagination controls
+  const pagDiv = document.getElementById('list-pagination');
+  if (totalPages <= 1) {
+    pagDiv.innerHTML = '';
+    return;
+  }
+  pagDiv.innerHTML = `
+    <button ${listPage === 0 ? 'disabled' : ''} onclick="listPage=0;renderList()">«</button>
+    <button ${listPage === 0 ? 'disabled' : ''} onclick="listPage--;renderList()">‹</button>
+    <span class="page-info">${listPage + 1} / ${totalPages}</span>
+    <button ${listPage >= totalPages - 1 ? 'disabled' : ''} onclick="listPage++;renderList()">›</button>
+    <button ${listPage >= totalPages - 1 ? 'disabled' : ''} onclick="listPage=${totalPages-1};renderList()">»</button>
+  `;
+}
+
+function getCellValue(rec, key) {
+  if (key === 'rt_match') return rec.rt_match ? 1 : 0;
+  return rec[key];
+}
+
+function sortList(col) {
+  if (sortCol === col) {
+    sortAsc = !sortAsc;
+  } else {
+    sortCol = col;
+    sortAsc = true;
+  }
+  listPage = 0;
+  renderList();
+}
+
+// ===== DETAIL MODAL =====
+function openDetail(id) {
+  const rec = DATA.records.find(r => r.id === id);
+  if (!rec) return;
+
+  const catClass = `cat-${rec.category === 'new_application' ? 'new' : rec.category || 'unknown'}`;
+  const catLabel = CATEGORY_LABELS[rec.category] || rec.category || '—';
+  const gMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(rec.address + ', ' + rec.city + ', CO')}`;
+  const svUrl = rec.lat && rec.lng ? `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${rec.lat},${rec.lng}` : null;
+
+  let html = `<h2>${esc(rec.name || '—')}</h2>`;
+  if (rec.dba && rec.dba !== rec.name) html += `<div class="modal-dba">DBA: ${esc(rec.dba)}</div>`;
+  html += `<span class="cat-badge ${catClass}" style="margin-bottom:8px;display:inline-block">${catLabel}</span>`;
+
+  // License details
+  html += `<div class="modal-section"><h3>License Details</h3><div class="modal-grid">`;
+  html += field('Type', rec.license_type);
+  html += field('Number', rec.license_number);
+  html += field('Status', rec.status);
+  html += field('Source', rec.source === 'denver' ? 'Denver ArcGIS' : rec.source === 'state_approved' ? 'State (Approved)' : 'State (Active)');
+  html += `</div></div>`;
+
+  // Location
+  html += `<div class="modal-section"><h3>Location</h3><div class="modal-grid">`;
+  html += field('Address', rec.address);
+  html += field('City', `${rec.city}, ${rec.state} ${rec.zip}`);
+  if (rec.neighborhood) html += field('Neighborhood', rec.neighborhood);
+  if (rec.council_district) html += field('Council Dist.', rec.council_district);
+  html += `</div>`;
+  html += `<div class="modal-links">`;
+  html += `<a href="${gMapsUrl}" target="_blank">📍 Google Maps</a>`;
+  if (svUrl) html += `<a href="${svUrl}" target="_blank">🔭 Street View</a>`;
+  html += `</div></div>`;
+
+  // Dates
+  html += `<div class="modal-section"><h3>Dates</h3><div class="modal-grid">`;
+  html += field('Issued', rec.issue_date || '—');
+  html += field('Expires', rec.expiration_date || '—');
+  if (rec.hearing_date) html += field('Hearing', rec.hearing_date);
+  if (rec.hearing_time) html += field('Hearing Time', rec.hearing_time);
+  if (rec.hearing_status) html += field('Hearing Status', rec.hearing_status);
+  html += `</div></div>`;
+
+  // RT Match
+  if (rec.rt_match) {
+    const rt = rec.rt_match;
+    html += `<div class="modal-rt"><h3>✦ Restaurant Tracker Match</h3><div class="modal-grid">`;
+    html += field('Name', rt.name);
+    html += field('Rating', rt.rating ? `${rt.rating}★ (${rt.reviews || 0})` : '—');
+    html += field('Type', rt.type || '—');
+    html += field('Status', rt.status || '—');
+    if (rt.first_seen) html += field('First Seen', rt.first_seen);
+    html += `</div></div>`;
+  }
+
+  document.getElementById('modal-body').innerHTML = html;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function field(label, value) {
+  return `<div class="modal-field"><label>${label}</label><span>${esc(String(value || '—'))}</span></div>`;
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+}
+
+// Close modal on Escape
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+// ===== UTIL =====
+function esc(str) {
+  if (!str) return '';
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
 </script>
 </body>
 </html>

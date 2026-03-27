@@ -1,48 +1,38 @@
-# Denver Liquor License Tracker
+# Liquor License Tracker — Dreck Suite
 
-Part of the **Dreck Suite** — internal newsroom tools for BusinessDen.
+Tracks liquor license activity across the Denver metro area using three public data sources.
 
-## What it does
+## Data Sources
 
-Tracks liquor license activity across the Denver metro area by pulling from two public data sources:
+- **Denver ArcGIS** — City liquor licenses with hearing data, neighborhoods, council districts
+- **CO Socrata (htyp-tqzh)** — Recently approved state licenses
+- **CO Socrata (ier5-5ms2)** — All active state licenses
 
-1. **Colorado CIM / Socrata API** (state-level) — Recently approved licenses and all active licenses statewide, filtered to Denver metro cities
-2. **Denver ArcGIS feature service** (city-level) — Richer data including neighborhood, council district, zone district, hearing dates, and hearing status
+Cross-references against the BusinessDen Restaurant Tracker for Google rating/review context.
 
-The scraper runs daily at 5am MT via GitHub Actions, computes a diff against the previous day's data, and publishes results to GitHub Pages.
-
-## Newsroom value
-
-- **Pending licenses** = restaurants/bars planning to open (2–4 months lead time)
-- **Recently approved** = opening imminent
-- **Surrendered/expired** = closures
-- **Delinquent** = potential trouble
-- **Status changes** = movement in the pipeline
-- **Hearing dates** = earliest possible signal of a new venue
-
-## Data sources
-
-| Source | Dataset ID | Records | Update frequency |
-|--------|-----------|---------|-----------------|
-| CO Socrata: Recently Approved | `htyp-tqzh` | ~950 | Monthly |
-| CO Socrata: All Active | `ier5-5ms2` | ~20,000 | Monthly |
-| Denver ArcGIS | `ODC_BUSN_LIQUORLICENSES_P/27` | ~10,000 | Weekly |
+No API keys required — all sources are public and unauthenticated.
 
 ## Setup
 
 1. Create repo `businessden/Liquor-tracker` on GitHub
-2. Copy all files from this directory
-3. Copy `auth.js` from another Dreck Suite repo (e.g., Restaurant-tracker)
-4. Enable GitHub Pages (deploy from GitHub Actions)
+2. Push all files
+3. Copy the real `auth.js` from another Dreck Suite repo (e.g., Restaurant-tracker)
+4. Enable GitHub Pages: Settings → Pages → Source: GitHub Actions
 5. Run the workflow manually to seed initial data
+6. Verify at `businessden.github.io/Liquor-tracker/`
 
-No API keys required — all data sources are public.
+## Architecture
 
-## Files
+- `scraper.py` — Data collection, classification, diff computation, chart data
+- `index.html` — Full frontend: KPI cards, dual-axis chart, donut cluster map, filtered license list
+- `.github/workflows/scrape.yml` — DST-aware daily cron (5am MT)
 
-- `index.html` — Frontend (map + table + filters)
-- `scraper.py` — Data collection script
-- `auth.js` — Shared Dreck Suite authentication
-- `.github/workflows/scrape.yml` — GitHub Actions workflow
-- `liquor-data.json` — Generated data file (committed by scraper)
-- `data/previous.json` — Previous snapshot for diff computation
+## Categories
+
+Records are classified as:
+- **New Application** — Recently issued, no prior license at that address
+- **Pending** — Application in progress
+- **Delinquent** — Behind on fees/compliance
+- **Active** — Current valid license
+- **Renewal** — Recently re-issued at an address with prior history
+- **Closed** — Expired, surrendered, withdrawn, denied, or revoked
