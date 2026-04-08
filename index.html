@@ -14,61 +14,35 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
   :root {
-    --bg: #08090a;
-    --surface: #0d0e12;
-    --surface2: #131519;
-    --surface3: #1a1c22;
-    --border: #23262e;
-    --text: #e2e4e9;
-    --text-dim: #8b8f9a;
-    --text-muted: #555963;
-    --blue: #3b82f6;
-    --amber: #f5a623;
-    --green: #22c55e;
-    --red: #ef4444;
-    --gray: #6b7280;
-    --dark-gray: #374151;
-    --pink: #ec4899;
-    --radius: 10px;
-    --font: 'Outfit', sans-serif;
-    --mono: 'JetBrains Mono', monospace;
+    --bg: #08090a; --surface: #0d0e12; --surface2: #131519; --surface3: #1a1c22;
+    --border: #23262e; --text: #e2e4e9; --text-dim: #8b8f9a; --text-muted: #555963;
+    --blue: #3b82f6; --amber: #f5a623; --green: #22c55e; --red: #ef4444;
+    --gray: #6b7280; --dark-gray: #374151;
+    --radius: 10px; --font: 'Outfit', sans-serif; --mono: 'JetBrains Mono', monospace;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    background: var(--bg); color: var(--text);
-    font-family: var(--font); font-size: 15px; line-height: 1.5;
-    overflow-x: hidden;
-  }
+  body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 15px; line-height: 1.5; }
 
-  /* Auth */
   #auth-overlay {
     position: fixed; inset: 0; z-index: 9999; background: var(--bg);
-    display: flex; align-items: center; justify-content: center;
-    flex-direction: column; gap: 16px;
+    display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 16px;
   }
   #auth-overlay.hidden { display: none; }
   #auth-overlay h1 { font-size: 24px; font-weight: 600; }
   #auth-overlay input {
-    background: var(--surface2); border: 1px solid var(--border);
-    color: var(--text); padding: 10px 16px; border-radius: var(--radius);
-    font-family: var(--font); font-size: 15px; width: 260px; outline: none;
+    background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+    padding: 10px 16px; border-radius: var(--radius); font-family: var(--font); font-size: 15px; width: 260px; outline: none;
   }
   #auth-overlay input:focus { border-color: var(--blue); }
   #auth-overlay .error { color: var(--red); font-size: 13px; min-height: 20px; }
   #auth-overlay button {
     background: var(--blue); color: #fff; border: none; padding: 10px 24px;
-    border-radius: var(--radius); font-family: var(--font); font-size: 15px;
-    cursor: pointer; font-weight: 500;
+    border-radius: var(--radius); font-family: var(--font); font-size: 15px; cursor: pointer; font-weight: 500;
   }
 
-  /* Layout */
-  #app { display: none; }
-  #app.visible { display: block; }
+  #app { display: none; } #app.visible { display: block; }
 
-  header {
-    padding: 20px 24px 0;
-    display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
-  }
+  header { padding: 20px 24px 0; display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
   header h1 {
     font-size: 22px; font-weight: 700; letter-spacing: -0.5px;
     background: linear-gradient(135deg, var(--amber), var(--blue));
@@ -76,147 +50,75 @@
   }
   header .meta { font-size: 13px; color: var(--text-dim); font-family: var(--mono); }
 
-  /* KPI Cards — sticky */
   .kpi-row {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 10px; padding: 12px 24px;
     position: sticky; top: 0; z-index: 700;
-    background: var(--bg);
-    border-bottom: 1px solid var(--border);
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px; padding: 14px 24px; background: var(--bg); border-bottom: 1px solid var(--border);
   }
   .kpi-card {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 12px 14px;
-    cursor: pointer; transition: all 0.2s; position: relative; overflow: hidden;
-    text-align: center;
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 12px 14px; cursor: pointer; transition: all 0.2s; position: relative; overflow: hidden; text-align: center;
   }
   .kpi-card:hover { border-color: var(--text-muted); transform: translateY(-1px); }
   .kpi-card.active { border-color: var(--blue); background: var(--surface2); }
-  .kpi-card.active::before {
-    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-    background: var(--blue);
-  }
-  .kpi-label {
-    font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px;
-    color: var(--text-dim); font-weight: 500; margin-bottom: 2px;
-  }
-  .kpi-value {
-    font-size: 28px; font-weight: 700; font-family: var(--mono); line-height: 1.1;
-  }
-  .kpi-sub {
-    font-size: 11px; color: var(--text-muted); margin-top: 2px; font-family: var(--mono);
-  }
-  .kpi-card[data-filter="new_application"] .kpi-value { color: var(--green); }
-  .kpi-card[data-filter="approved"] .kpi-value { color: var(--amber); }
-  .kpi-card[data-filter="pending"] .kpi-value { color: var(--amber); }
+  .kpi-card.active::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--blue); }
+  .kpi-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-dim); font-weight: 500; margin-bottom: 4px; }
+  .kpi-value { font-size: 28px; font-weight: 700; font-family: var(--mono); line-height: 1.1; }
+  .kpi-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; font-family: var(--mono); }
+  .kpi-card[data-filter="new"] .kpi-value { color: var(--green); }
   .kpi-card[data-filter="delinquent"] .kpi-value { color: var(--red); }
   .kpi-card[data-filter="rt_match"] .kpi-value { color: var(--blue); }
 
-  /* Diff Panel */
-  .diff-panel {
-    margin: 12px 24px; background: var(--surface);
-    border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden;
-  }
+  .diff-panel { margin: 12px 24px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
   .diff-panel.hidden { display: none; }
-  .diff-header {
-    padding: 10px 16px; cursor: pointer; display: flex;
-    align-items: center; gap: 8px; font-weight: 500; font-size: 14px;
-  }
-  .diff-header .badge {
-    background: var(--amber); color: #000; padding: 2px 8px;
-    border-radius: 20px; font-size: 11px; font-weight: 600; font-family: var(--mono);
-  }
+  .diff-header { padding: 10px 16px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 500; font-size: 14px; }
+  .diff-header .badge { background: var(--amber); color: #000; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; font-family: var(--mono); }
   .diff-body { padding: 0 16px 12px; font-size: 13px; display: none; }
   .diff-body.open { display: block; }
   .diff-item { padding: 4px 0; border-bottom: 1px solid var(--border); display: flex; gap: 8px; align-items: baseline; }
+  .diff-item.clickable { cursor: pointer; } .diff-item.clickable:hover { color: var(--blue); }
   .diff-item:last-child { border-bottom: none; }
   .diff-tag { font-size: 10px; text-transform: uppercase; font-weight: 600; padding: 1px 6px; border-radius: 4px; font-family: var(--mono); }
   .diff-tag.new { background: rgba(34,197,94,0.2); color: var(--green); }
   .diff-tag.removed { background: rgba(239,68,68,0.2); color: var(--red); }
   .diff-tag.changed { background: rgba(245,166,35,0.2); color: var(--amber); }
 
-  /* Chart */
-  .chart-section {
-    margin: 0 24px 16px; background: var(--surface);
-    border: 1px solid var(--border); border-radius: var(--radius); padding: 16px;
-  }
-  .chart-section h2 {
-    font-size: 14px; font-weight: 600; margin-bottom: 12px;
-    color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px;
-  }
-  .chart-wrap { position: relative; height: 300px; }
-  .chart-empty {
-    display: flex; align-items: center; justify-content: center;
-    height: 200px; color: var(--text-muted); font-size: 14px;
-  }
+  .chart-section { margin: 0 24px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+  .chart-section h2 { font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
+  .chart-wrap { position: relative; height: 280px; }
+  .chart-empty { color: var(--text-muted); font-size: 13px; padding: 40px; text-align: center; }
 
-  /* Filter Bar */
-  .filter-bar {
-    display: flex; gap: 8px; padding: 0 24px 12px; flex-wrap: wrap; align-items: center;
-  }
+  .filter-bar { display: flex; gap: 8px; padding: 0 24px 12px; flex-wrap: wrap; align-items: center; }
   .filter-bar input, .filter-bar select {
-    background: var(--surface2); border: 1px solid var(--border);
-    color: var(--text); padding: 8px 12px; border-radius: var(--radius);
-    font-family: var(--font); font-size: 13px; outline: none;
+    background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+    padding: 8px 12px; border-radius: var(--radius); font-family: var(--font); font-size: 13px; outline: none;
   }
   .filter-bar input { flex: 1; min-width: 180px; }
   .filter-bar select { min-width: 140px; }
   .filter-bar input:focus, .filter-bar select:focus { border-color: var(--blue); }
-  .btn-reset {
-    background: var(--surface2); border: 1px solid var(--border);
-    color: var(--text-dim); padding: 8px 14px; border-radius: var(--radius);
-    font-family: var(--font); font-size: 13px; cursor: pointer;
-  }
+  .btn-reset { background: var(--surface2); border: 1px solid var(--border); color: var(--text-dim); padding: 8px 14px; border-radius: var(--radius); font-family: var(--font); font-size: 13px; cursor: pointer; }
   .btn-reset:hover { border-color: var(--text-muted); color: var(--text); }
 
-  /* Map */
   .map-section { margin: 0 24px 16px; position: relative; }
   #map { height: 500px; border-radius: var(--radius); border: 1px solid var(--border); }
   .leaflet-tile-pane { filter: brightness(1.45) contrast(1.15) saturate(1.3); }
-  .leaflet-control-zoom a {
-    background: var(--surface) !important; color: var(--text) !important;
-    border-color: var(--border) !important;
-  }
-  .scroll-hint {
-    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    z-index: 600; background: rgba(0,0,0,0.75); color: var(--text);
-    padding: 8px 16px; border-radius: 8px; font-size: 13px;
-    pointer-events: none; opacity: 0; transition: opacity 0.3s;
-  }
-  .scroll-hint.show { opacity: 1; }
+  .leaflet-control-zoom a { background: var(--surface) !important; color: var(--text) !important; border-color: var(--border) !important; }
   .donut-cluster { background: none !important; border: none !important; display: flex; align-items: center; justify-content: center; }
+  .scroll-hint { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); background: rgba(0,0,0,0.8); color: var(--text); padding: 10px 20px; border-radius: var(--radius); font-size: 13px; pointer-events: none; z-index: 600; opacity: 0; transition: opacity 0.3s; }
+  .scroll-hint.show { opacity: 1; }
 
-  /* Legend */
-  .map-legend {
-    position: absolute; bottom: 16px; right: 16px; z-index: 600;
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 10px 14px; font-size: 12px;
-  }
+  .map-legend { position: absolute; bottom: 16px; right: 16px; z-index: 600; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 14px; font-size: 12px; }
   .map-legend h4 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-dim); margin-bottom: 6px; }
   .legend-item { display: flex; align-items: center; gap: 6px; margin: 3px 0; }
   .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 
-  /* License List */
-  .list-section {
-    margin: 0 24px 24px; background: var(--surface);
-    border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden;
-  }
-  .list-header {
-    padding: 12px 16px; display: flex; align-items: center;
-    justify-content: space-between; border-bottom: 1px solid var(--border);
-  }
+  .list-section { margin: 0 24px 24px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .list-header { padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
   .list-header h2 { font-size: 14px; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
   .list-header .count { font-family: var(--mono); font-size: 13px; color: var(--text-muted); }
-  .list-table-wrap { overflow-x: auto; max-height: 520px; overflow-y: auto; }
+  .list-table-wrap { overflow-x: auto; }
   .list-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  .list-table thead th {
-    padding: 8px 12px; text-align: left; font-weight: 500;
-    color: var(--text-dim); font-size: 11px; text-transform: uppercase;
-    letter-spacing: 0.5px; border-bottom: 1px solid var(--border);
-    cursor: pointer; white-space: nowrap; user-select: none;
-    position: sticky; top: 0; background: var(--surface); z-index: 2;
-  }
+  .list-table thead th { padding: 8px 12px; text-align: left; font-weight: 500; color: var(--text-dim); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); cursor: pointer; white-space: nowrap; user-select: none; position: sticky; top: 0; background: var(--surface); }
   .list-table thead th:hover { color: var(--text); }
   .list-table thead th .sort-arrow { margin-left: 4px; opacity: 0.4; }
   .list-table thead th.sorted .sort-arrow { opacity: 1; color: var(--blue); }
@@ -227,74 +129,41 @@
   .list-table .name-link:hover { text-decoration: underline; }
   .cat-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; text-transform: uppercase; font-weight: 600; font-family: var(--mono); letter-spacing: 0.3px; }
   .cat-new { background: rgba(34,197,94,0.15); color: var(--green); }
-  .cat-pending { background: rgba(245,166,35,0.15); color: var(--amber); }
   .cat-delinquent { background: rgba(239,68,68,0.15); color: var(--red); }
-  .cat-active { background: rgba(59,130,246,0.15); color: var(--blue); }
-  .cat-renewal { background: rgba(107,114,128,0.2); color: var(--gray); }
-  .cat-closed { background: rgba(55,65,81,0.3); color: var(--text-muted); }
-  .cat-resolved_delinquent { background: rgba(107,114,128,0.2); color: var(--gray); }
+  .cat-pending { background: rgba(245,166,35,0.15); color: var(--amber); }
   .rt-badge { display: inline-flex; align-items: center; gap: 3px; color: var(--blue); font-size: 13px; cursor: help; }
 
-  /* Pagination */
-  .list-pagination {
-    display: flex; align-items: center; justify-content: center;
-    gap: 8px; padding: 12px 16px; border-top: 1px solid var(--border);
-  }
-  .list-pagination button {
-    background: var(--surface2); border: 1px solid var(--border);
-    color: var(--text-dim); padding: 6px 12px; border-radius: 6px;
-    font-family: var(--font); font-size: 12px; cursor: pointer;
-  }
+  .list-pagination { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--border); }
+  .list-pagination button { background: var(--surface2); border: 1px solid var(--border); color: var(--text-dim); padding: 6px 12px; border-radius: 6px; font-family: var(--font); font-size: 12px; cursor: pointer; }
   .list-pagination button:hover { border-color: var(--text-muted); color: var(--text); }
   .list-pagination button:disabled { opacity: 0.3; cursor: default; }
   .list-pagination .page-info { font-size: 12px; color: var(--text-muted); font-family: var(--mono); }
 
-  /* Modal */
-  .modal-overlay {
-    position: fixed; inset: 0; z-index: 8000;
-    background: rgba(0,0,0,0.7); display: none;
-    align-items: center; justify-content: center; padding: 24px;
-  }
+  .modal-overlay { position: fixed; inset: 0; z-index: 8000; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; padding: 24px; }
   .modal-overlay.open { display: flex; }
-  .modal {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius); max-width: 560px; width: 100%;
-    max-height: 80vh; overflow-y: auto; position: relative;
-  }
-  .modal-close {
-    position: absolute; top: 10px; right: 12px;
-    background: none; border: none; color: var(--text-dim);
-    font-size: 20px; cursor: pointer; padding: 4px 8px;
-  }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); max-width: 560px; width: 100%; max-height: 80vh; overflow-y: auto; position: relative; }
+  .modal-close { position: absolute; top: 10px; right: 12px; background: none; border: none; color: var(--text-dim); font-size: 20px; cursor: pointer; padding: 4px 8px; }
   .modal-close:hover { color: var(--text); }
   .modal-body { padding: 20px; }
   .modal-body h2 { font-size: 18px; font-weight: 700; margin-bottom: 4px; padding-right: 32px; }
-  .modal-dba { font-size: 13px; color: var(--text-dim); margin-bottom: 12px; }
+  .modal-body .modal-dba { font-size: 13px; color: var(--text-dim); margin-bottom: 12px; }
   .modal-section { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
   .modal-section h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-dim); margin-bottom: 8px; font-weight: 500; }
   .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .modal-field label { display: block; font-size: 10px; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.3px; margin-bottom: 2px; }
   .modal-field span { font-size: 14px; font-family: var(--mono); color: var(--text); }
+  .modal-field a { color: var(--blue); text-decoration: none; font-size: 13px; }
+  .modal-field a:hover { text-decoration: underline; }
+  .modal-rt { background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.25); border-radius: 8px; padding: 12px; margin-top: 14px; }
+  .modal-rt h3 { color: var(--blue); margin-bottom: 8px; }
   .modal-links { display: flex; gap: 10px; margin-top: 12px; }
   .modal-links a { display: inline-flex; align-items: center; gap: 4px; color: var(--blue); font-size: 13px; text-decoration: none; }
   .modal-links a:hover { text-decoration: underline; }
-  .modal-rt {
-    background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.25);
-    border-radius: 8px; padding: 12px; margin-top: 14px;
-  }
-  .modal-rt h3 { color: var(--blue); margin-bottom: 8px; }
 
-  /* Scrollbar */
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: var(--surface); }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-
-  /* Leaflet popups */
-  .leaflet-popup-content-wrapper {
-    background: var(--surface) !important; color: var(--text) !important;
-    border-radius: var(--radius) !important; border: 1px solid var(--border);
-    font-family: var(--font) !important; font-size: 13px;
-  }
+  .leaflet-popup-content-wrapper { background: var(--surface) !important; color: var(--text) !important; border-radius: var(--radius) !important; border: 1px solid var(--border); font-family: var(--font) !important; font-size: 13px; }
   .leaflet-popup-tip { background: var(--surface) !important; }
   .leaflet-popup-content { margin: 10px 14px !important; }
 </style>
@@ -313,9 +182,7 @@
     <h1>🍸 Liquor License Tracker</h1>
     <span class="meta" id="meta-info"></span>
   </header>
-
   <div class="kpi-row" id="kpi-row"></div>
-
   <div class="diff-panel hidden" id="diff-panel">
     <div class="diff-header" onclick="toggleDiff()">
       <span>⚡ What's Changed</span>
@@ -323,41 +190,34 @@
     </div>
     <div class="diff-body" id="diff-body"></div>
   </div>
-
   <div class="chart-section">
     <h2>New Licenses & Delinquencies — <span id="chart-year">YTD</span></h2>
-    <div class="chart-wrap" id="chart-wrap">
-      <canvas id="main-chart"></canvas>
-    </div>
+    <div class="chart-wrap" id="chart-wrap"><canvas id="main-chart"></canvas></div>
   </div>
-
   <div class="filter-bar">
     <input type="text" id="f-search" placeholder="Search name, address, license type...">
     <select id="f-city"><option value="">All Cities</option></select>
     <select id="f-neighborhood"><option value="">All Neighborhoods</option></select>
     <button class="btn-reset" onclick="resetFilters()">Reset</button>
   </div>
-
   <div class="map-section">
     <div id="map"></div>
-    <div class="scroll-hint" id="scroll-hint">Hold <b>Shift</b> + scroll to zoom</div>
+    <div class="scroll-hint" id="scroll-hint">Hold Shift to zoom</div>
     <div class="map-legend">
       <h4>Category</h4>
-      <div class="legend-item"><span class="legend-dot" style="background:#22c55e"></span> New Application</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#22c55e"></span> New License</div>
       <div class="legend-item"><span class="legend-dot" style="background:#ef4444"></span> Delinquent</div>
-      <div class="legend-item"><span class="legend-dot" style="background:#f5a623"></span> Pending</div>
       <div class="legend-item" style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border)">
         <span class="legend-dot" style="border:2px solid #3b82f6;background:transparent"></span> RT Match
       </div>
     </div>
   </div>
-
   <div class="list-section">
     <div class="list-header">
       <h2>License Records</h2>
       <span class="count" id="list-count">0 records</span>
     </div>
-    <div class="list-table-wrap">
+    <div class="list-table-wrap" style="max-height:500px;overflow-y:auto;">
       <table class="list-table">
         <thead id="list-thead"></thead>
         <tbody id="list-tbody"></tbody>
@@ -375,7 +235,6 @@
 </div>
 
 <script>
-// ===== AUTH =====
 const AUTH_PW = 'BizDenScoops!';
 const AUTH_KEY = 'liquor_tracker_auth';
 
@@ -390,10 +249,9 @@ function checkAuth() {
   }
 }
 document.getElementById('auth-pw').addEventListener('keydown', e => { if (e.key === 'Enter') checkAuth(); });
-
 (function() {
-  const stored = localStorage.getItem(AUTH_KEY);
-  if (stored && Date.now() - parseInt(stored) < 30 * 24 * 60 * 60 * 1000) {
+  const s = localStorage.getItem(AUTH_KEY);
+  if (s && Date.now() - parseInt(s) < 30*24*60*60*1000) {
     document.getElementById('auth-overlay').classList.add('hidden');
     document.getElementById('app').classList.add('visible');
     setTimeout(initApp, 50);
@@ -402,56 +260,45 @@ document.getElementById('auth-pw').addEventListener('keydown', e => { if (e.key 
 
 // ===== GLOBALS =====
 let DATA = null;
-let allDisplayRecords = [];  // Only new_application + delinquent + pending
+let displayRecords = [];   // Only new + delinquent records
 let filteredRecords = [];
 let activeKPI = null;
-let sortCol = null;
-let sortAsc = true;
-let listPage = 0;
+let sortCol = null, sortAsc = true, listPage = 0;
 const PAGE_SIZE = 100;
 let map, clusterGroup;
+let baselineDate = null;   // first_seen date from initial run
 
-const CATEGORY_COLORS = {
-  new_application: '#22c55e',
-  pending: '#f5a623',
-  delinquent: '#ef4444',
-  resolved_delinquent: '#6b7280',
-  active: '#3b82f6',
-  renewal: '#6b7280',
-  closed: '#374151',
-  unknown: '#374151'
-};
-const CATEGORY_LABELS = {
-  new_application: 'New',
-  pending: 'Pending',
-  delinquent: 'Delinquent',
-  resolved_delinquent: 'Resolved',
-  active: 'Active',
-  renewal: 'Renewal',
-  closed: 'Closed',
-  unknown: 'Unknown'
-};
+const COLORS = { new: '#22c55e', delinquent: '#ef4444' };
+const LABELS = { new: 'New', delinquent: 'Delinquent' };
 
-// Only these categories are displayed
-const DISPLAY_CATEGORIES = ['new_application', 'delinquent', 'pending'];
-
-// ===== INIT =====
 async function initApp() {
-  try {
-    const resp = await fetch('liquor-data.json');
-    DATA = await resp.json();
-  } catch (e) {
-    console.error('Failed to load data:', e);
-    return;
-  }
+  try { const r = await fetch('liquor-data.json'); DATA = await r.json(); }
+  catch(e) { console.error('Failed:', e); return; }
 
-  // Filter to only newsworthy categories for display
-  allDisplayRecords = DATA.records.filter(r => DISPLAY_CATEGORIES.includes(r.category));
+  // Determine baseline date (the earliest first_seen — that's the initial run date)
+  const allFirstSeen = DATA.records.map(r => r.first_seen).filter(Boolean).sort();
+  baselineDate = allFirstSeen.length > 0 ? allFirstSeen[0] : null;
+
+  // Build display records: delinquent + genuinely new (first_seen is a real date, not "baseline")
+  displayRecords = DATA.records.filter(r => {
+    if (r.category === 'delinquent') return true;
+    if (r.first_seen && r.first_seen !== 'baseline'
+        && r.category !== 'closed' && r.category !== 'resolved_delinquent') return true;
+    return false;
+  });
+
+  // Tag display records with a display_type for color coding
+  displayRecords.forEach(r => {
+    r._display = r.category === 'delinquent' ? 'delinquent' : 'new';
+  });
+
+  const newCount = displayRecords.filter(r => r._display === 'new').length;
+  const delinqCount = displayRecords.filter(r => r._display === 'delinquent').length;
 
   document.getElementById('meta-info').textContent =
-    `${DATA.metadata.total_records.toLocaleString()} total licenses tracked • ${allDisplayRecords.length.toLocaleString()} newsworthy • Updated ${new Date(DATA.metadata.generated).toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'})}`;
+    `${DATA.metadata.total_records.toLocaleString()} licenses tracked • Updated ${new Date(DATA.metadata.generated).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}`;
 
-  buildKPIs();
+  buildKPIs(newCount, delinqCount);
   buildDiffPanel();
   buildChart();
   populateFilters();
@@ -465,41 +312,25 @@ async function initApp() {
 
 function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
 
-// ===== KPI CARDS =====
-function buildKPIs() {
-  const records = DATA.records;
-  const now = new Date();
-  const thirtyDaysAgo = new Date(now - 30 * 24 * 60 * 60 * 1000);
-
-  const newApps = records.filter(r => r.category === 'new_application').length;
-  const approved30 = records.filter(r => {
-    if (r.source !== 'state_approved') return false;
-    if (!r.issue_date) return true;
-    return new Date(r.issue_date) >= thirtyDaysAgo;
-  }).length;
-  const pending = records.filter(r => r.category === 'pending').length;
-  const delinquent = records.filter(r => r.category === 'delinquent').length;
-  const rtMatches = allDisplayRecords.filter(r => r.rt_match).length;
-
+// ===== KPIs =====
+function buildKPIs(newCount, delinqCount) {
+  const rtMatches = displayRecords.filter(r => r.rt_match).length;
   const kpis = [
-    { label: 'New Applications', value: newApps, filter: 'new_application', sub: 'Last 12 months' },
-    { label: 'Recently Approved', value: approved30, filter: 'approved', sub: 'Last 30 days' },
-    { label: 'Pending', value: pending, filter: 'pending', sub: 'Awaiting approval' },
-    { label: 'Delinquent', value: delinquent, filter: 'delinquent', sub: 'Behind on fees' },
+    { label: 'Total Displayed', value: displayRecords.length, filter: 'all', sub: 'New & delinquent' },
+    { label: 'New Licenses', value: newCount, filter: 'new', sub: 'Since tracking began' },
+    { label: 'Delinquent', value: delinqCount, filter: 'delinquent', sub: 'Behind on fees' },
     { label: 'RT Matches', value: rtMatches, filter: 'rt_match', sub: 'In restaurant tracker' },
   ];
-
   document.getElementById('kpi-row').innerHTML = kpis.map(k => `
     <div class="kpi-card" data-filter="${k.filter}" onclick="toggleKPI('${k.filter}')">
       <div class="kpi-label">${k.label}</div>
       <div class="kpi-value">${k.value.toLocaleString()}</div>
       <div class="kpi-sub">${k.sub}</div>
-    </div>
-  `).join('');
+    </div>`).join('');
 }
 
-function toggleKPI(filter) {
-  activeKPI = activeKPI === filter ? null : filter;
+function toggleKPI(f) {
+  activeKPI = activeKPI === f ? null : f;
   document.querySelectorAll('.kpi-card').forEach(c => c.classList.toggle('active', c.dataset.filter === activeKPI));
   applyFilters();
 }
@@ -509,163 +340,106 @@ function buildDiffPanel() {
   const diff = DATA.diff;
   const total = diff.new_count + diff.removed_count + diff.status_changes_count;
   if (total === 0) return;
-
   document.getElementById('diff-panel').classList.remove('hidden');
   document.getElementById('diff-badge').textContent = total;
-
   let html = '';
-  diff.new.slice(0, 20).forEach(r => {
-    html += `<div class="diff-item" style="cursor:pointer" onclick="openDetail('${esc(r.id)}')"><span class="diff-tag new">NEW</span> ${esc(r.name)} — ${esc(r.address)}</div>`;
+  diff.new.slice(0,20).forEach(r => {
+    html += `<div class="diff-item clickable" onclick="openDetail('${esc(r.id)}')"><span class="diff-tag new">NEW</span> ${esc(r.name)} — ${esc(r.address)}</div>`;
   });
-  diff.removed.slice(0, 20).forEach(r => {
+  diff.removed.slice(0,20).forEach(r => {
     html += `<div class="diff-item"><span class="diff-tag removed">GONE</span> ${esc(r.name)} — ${esc(r.address)}</div>`;
   });
-  diff.status_changes.slice(0, 20).forEach(r => {
-    html += `<div class="diff-item" style="cursor:pointer" onclick="openDetail('${esc(r.id)}')"><span class="diff-tag changed">CHG</span> ${esc(r.name)}: ${esc(r.old_status)} → ${esc(r.new_status)}</div>`;
+  diff.status_changes.slice(0,20).forEach(r => {
+    html += `<div class="diff-item clickable" onclick="openDetail('${esc(r.id)}')"><span class="diff-tag changed">CHG</span> ${esc(r.name)}: ${esc(r.old_status)} → ${esc(r.new_status)}</div>`;
   });
   document.getElementById('diff-body').innerHTML = html;
 }
-
 function toggleDiff() { document.getElementById('diff-body').classList.toggle('open'); }
 
-// ===== CHART (daily bars from issue_date data) =====
+// ===== CHART =====
 function buildChart() {
-  const chart = DATA.chart;
-  if (!chart || !chart.days || chart.days.length === 0) {
-    document.getElementById('chart-year').textContent = new Date().getFullYear() + ' YTD';
-    return;
-  }
+  const history = DATA.chart_history;
+  if (!history || !history.daily) { showChartEmpty(); return; }
 
-  document.getElementById('chart-year').textContent = chart.current_year + ' YTD';
+  const now = new Date();
+  const year = now.getFullYear();
+  document.getElementById('chart-year').textContent = year + ' YTD';
 
-  // Format labels as M/D
-  const labels = chart.days.map(d => {
-    const dt = new Date(d + 'T00:00:00');
-    return `${dt.getMonth()+1}/${dt.getDate()}`;
-  });
+  // Get entries for current year, sorted
+  const entries = Object.entries(history.daily)
+    .filter(([d]) => d.startsWith(String(year)))
+    .sort((a,b) => a[0].localeCompare(b[0]));
 
-  const datasets = [
-    {
-      label: 'New Licenses',
-      data: chart.new_counts,
-      backgroundColor: 'rgba(34, 197, 94, 0.7)',
-      borderColor: '#22c55e', borderWidth: 1,
-      yAxisID: 'y', order: 2,
-    },
-    {
-      label: 'Cumulative New',
-      data: chart.cumulative_new,
-      type: 'line',
-      borderColor: '#22c55e', backgroundColor: 'transparent',
-      borderWidth: 2, pointRadius: 0, tension: 0.3,
-      yAxisID: 'y1', order: 1,
-    },
-  ];
+  if (entries.length === 0) { showChartEmpty(); return; }
 
-  // Prior year cumulative line (2027+)
-  if (chart.prior_year && chart.prior_cumulative_new && chart.prior_cumulative_new.length > 0) {
-    const priorMap = {};
-    chart.prior_cumulative_new.forEach(p => {
-      const d = new Date(p.date + 'T00:00:00');
-      // Shift to current year for alignment
-      const key = `${d.getMonth()+1}/${d.getDate()}`;
-      priorMap[key] = p.value;
-    });
-    datasets.push({
-      label: `Cumulative New ${chart.prior_year}`,
-      data: labels.map(l => priorMap[l] ?? null),
-      type: 'line', borderColor: 'rgba(34,197,94,0.35)', backgroundColor: 'transparent',
-      borderWidth: 2, borderDash: [6,3], pointRadius: 0, tension: 0.3,
-      yAxisID: 'y1', order: 1, spanGaps: true,
-    });
-  }
+  const labels = entries.map(([d]) => { const dt = new Date(d+'T00:00:00'); return `${dt.getMonth()+1}/${dt.getDate()}`; });
+  const newBars = entries.map(([,v]) => v.new || 0);
+  const delinqBars = entries.map(([,v]) => -(v.delinquent || 0));
+
+  // Cumulative
+  let cn = 0, cd = 0;
+  const cumNew = newBars.map(v => { cn += v; return cn; });
+  const cumDelinq = delinqBars.map(v => { cd += v; return cd; });
 
   const ctx = document.getElementById('main-chart').getContext('2d');
   new Chart(ctx, {
     type: 'bar',
-    data: { labels, datasets },
+    data: { labels, datasets: [
+      { label: 'New Licenses', data: newBars, backgroundColor: 'rgba(34,197,94,0.7)', borderColor: '#22c55e', borderWidth: 1, yAxisID: 'y', order: 2 },
+      { label: 'Delinquencies', data: delinqBars, backgroundColor: 'rgba(239,68,68,0.7)', borderColor: '#ef4444', borderWidth: 1, yAxisID: 'y', order: 2 },
+      { label: 'Cumulative New', data: cumNew, type: 'line', borderColor: '#22c55e', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, tension: 0.3, yAxisID: 'y1', order: 1 },
+      { label: 'Cumulative Delinq', data: cumDelinq, type: 'line', borderColor: '#ef4444', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, tension: 0.3, yAxisID: 'y1', order: 1 },
+    ]},
     options: {
-      responsive: true,
-      maintainAspectRatio: false,
+      responsive: true, maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
       plugins: {
-        legend: {
-          display: true, position: 'bottom',
-          labels: { color: '#8b8f9a', font: { family: "'Outfit', sans-serif", size: 11 }, boxWidth: 14, padding: 12 },
-        },
-        tooltip: {
-          backgroundColor: '#0d0e12', borderColor: '#23262e', borderWidth: 1,
-          titleFont: { family: "'Outfit', sans-serif" },
-          bodyFont: { family: "'JetBrains Mono', monospace", size: 12 },
-          callbacks: { label: ctx => `${ctx.dataset.label}: ${Math.abs(ctx.parsed.y)}` }
-        },
+        legend: { display: true, position: 'bottom', labels: { color: '#8b8f9a', font: { family: "'Outfit',sans-serif", size: 11 }, boxWidth: 14, padding: 12 }},
+        tooltip: { backgroundColor: '#0d0e12', borderColor: '#23262e', borderWidth: 1, titleFont: { family: "'Outfit',sans-serif" }, bodyFont: { family: "'JetBrains Mono',monospace", size: 12 },
+          callbacks: { label: c => `${c.dataset.label}: ${Math.abs(c.parsed.y)}` }},
       },
       scales: {
-        x: {
-          grid: { color: 'rgba(35,38,46,0.5)' },
-          ticks: { color: '#8b8f9a', font: { family: "'Outfit', sans-serif", size: 10 }, maxRotation: 45, autoSkip: true, maxTicksLimit: 30 },
-        },
-        y: {
-          position: 'left',
-          title: { display: true, text: 'Daily Count', color: '#8b8f9a', font: { family: "'Outfit', sans-serif" } },
-          grid: { color: 'rgba(35,38,46,0.5)' },
-          ticks: { color: '#8b8f9a', font: { family: "'JetBrains Mono', monospace", size: 11 } },
-        },
-        y1: {
-          position: 'right',
-          title: { display: true, text: 'Cumulative YTD', color: '#8b8f9a', font: { family: "'Outfit', sans-serif" } },
-          grid: { drawOnChartArea: false },
-          ticks: { color: '#8b8f9a', font: { family: "'JetBrains Mono', monospace", size: 11 } },
-        },
+        x: { grid: { color: 'rgba(35,38,46,0.5)' }, ticks: { color: '#8b8f9a', font: { family: "'Outfit',sans-serif", size: 10 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 20 }},
+        y: { position: 'left', title: { display: true, text: 'Daily', color: '#8b8f9a', font: { family: "'Outfit',sans-serif" }}, grid: { color: 'rgba(35,38,46,0.5)' }, ticks: { color: '#8b8f9a', font: { family: "'JetBrains Mono',monospace", size: 11 }, callback: v => Math.abs(v) }},
+        y1: { position: 'right', title: { display: true, text: 'Cumulative', color: '#8b8f9a', font: { family: "'Outfit',sans-serif" }}, grid: { drawOnChartArea: false }, ticks: { color: '#8b8f9a', font: { family: "'JetBrains Mono',monospace", size: 11 }, callback: v => Math.abs(v) }},
       },
     },
   });
 }
 
-// ===== POPULATE FILTERS =====
-function populateFilters() {
-  const cities = [...new Set(allDisplayRecords.map(r => r.city).filter(Boolean))].sort();
-  const neighborhoods = [...new Set(allDisplayRecords.map(r => r.neighborhood).filter(Boolean))].sort();
-
-  const fCity = document.getElementById('f-city');
-  cities.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; fCity.appendChild(o); });
-
-  const fNeighborhood = document.getElementById('f-neighborhood');
-  neighborhoods.forEach(n => { const o = document.createElement('option'); o.value = n; o.textContent = n; fNeighborhood.appendChild(o); });
+function showChartEmpty() {
+  document.getElementById('chart-wrap').innerHTML = '<div class="chart-empty">Chart data accumulates with each daily scraper run.</div>';
 }
 
-// ===== FILTER LOGIC =====
+// ===== FILTERS =====
+function populateFilters() {
+  const cities = [...new Set(displayRecords.map(r => r.city).filter(Boolean))].sort();
+  const neighborhoods = [...new Set(displayRecords.map(r => r.neighborhood).filter(Boolean))].sort();
+  const fC = document.getElementById('f-city');
+  cities.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; fC.appendChild(o); });
+  const fN = document.getElementById('f-neighborhood');
+  neighborhoods.forEach(n => { const o = document.createElement('option'); o.value = n; o.textContent = n; fN.appendChild(o); });
+}
+
 function applyFilters() {
   const search = (document.getElementById('f-search').value || '').toLowerCase();
   const city = document.getElementById('f-city').value;
   const neighborhood = document.getElementById('f-neighborhood').value;
-  const now = new Date();
-  const thirtyDaysAgo = new Date(now - 30 * 24 * 60 * 60 * 1000);
 
-  filteredRecords = allDisplayRecords.filter(r => {
-    // KPI filter
-    if (activeKPI) {
-      if (activeKPI === 'approved') {
-        if (r.source !== 'state_approved') return false;
-        if (r.issue_date && new Date(r.issue_date) < thirtyDaysAgo) return false;
-      } else if (activeKPI === 'rt_match') {
-        if (!r.rt_match) return false;
-      } else {
-        if (r.category !== activeKPI) return false;
-      }
+  filteredRecords = displayRecords.filter(r => {
+    if (activeKPI && activeKPI !== 'all') {
+      if (activeKPI === 'rt_match' && !r.rt_match) return false;
+      if (activeKPI === 'new' && r._display !== 'new') return false;
+      if (activeKPI === 'delinquent' && r._display !== 'delinquent') return false;
     }
-
     if (search) {
-      const haystack = `${r.name} ${r.dba} ${r.address} ${r.license_type} ${r.neighborhood}`.toLowerCase();
-      if (!haystack.includes(search)) return false;
+      const h = `${r.name} ${r.dba} ${r.address} ${r.license_type} ${r.neighborhood}`.toLowerCase();
+      if (!h.includes(search)) return false;
     }
     if (city && r.city !== city) return false;
     if (neighborhood && r.neighborhood !== neighborhood) return false;
-
     return true;
   });
-
-  listPage = 0;
   updateMap();
   renderList();
 }
@@ -681,25 +455,16 @@ function resetFilters() {
 
 // ===== MAP =====
 function initMap() {
-  map = L.map('map', {
-    zoomControl: true,
-    scrollWheelZoom: false,  // Require shift+scroll
-  }).setView([39.74, -104.99], 11);
-
+  map = L.map('map', { zoomControl: true, scrollWheelZoom: false }).setView([39.74, -104.99], 11);
   L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; <a href="https://carto.com/">CARTO</a>',
-    subdomains: 'abcd', maxZoom: 19,
+    attribution: '&copy; CARTO', subdomains: 'abcd', maxZoom: 19,
   }).addTo(map);
 
   clusterGroup = L.markerClusterGroup({
-    maxClusterRadius: 50,
-    iconCreateFunction: createDonutIcon,
-    spiderfyOnMaxZoom: true,
-    showCoverageOnHover: false,
+    maxClusterRadius: 50, iconCreateFunction: createDonutIcon, spiderfyOnMaxZoom: true, showCoverageOnHover: false,
   });
   map.addLayer(clusterGroup);
 
-  // Shift+scroll to zoom
   const hint = document.getElementById('scroll-hint');
   let hintTimeout;
   map.getContainer().addEventListener('wheel', function(e) {
@@ -719,215 +484,167 @@ function createDonutIcon(cluster) {
   const children = cluster.getAllChildMarkers();
   const total = children.length;
   const counts = {};
-  children.forEach(m => { const c = m.options.category || 'unknown'; counts[c] = (counts[c] || 0) + 1; });
+  children.forEach(m => { const c = m.options.displayType || 'new'; counts[c] = (counts[c]||0)+1; });
 
-  const size = Math.min(36 + Math.sqrt(total) * 6, 72);
-  const r = size / 2;
-  const outerR = r * 0.85;
-  const innerR = r * 0.52;
+  const size = Math.min(36 + Math.sqrt(total)*6, 72);
+  const r = size/2, outerR = r*0.85, innerR = r*0.52;
 
-  let arcs = '';
-  let startAngle = -Math.PI / 2;
-  const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-
-  for (const [cat, count] of entries) {
-    const angle = (count / total) * 2 * Math.PI;
-    const endAngle = startAngle + angle;
-    const color = CATEGORY_COLORS[cat] || '#374151';
-
-    if (angle >= 2 * Math.PI - 0.001) {
-      arcs += `<circle cx="${r}" cy="${r}" r="${(outerR + innerR) / 2}" fill="none" stroke="${color}" stroke-width="${outerR - innerR}"/>`;
+  let arcs = '', startAngle = -Math.PI/2;
+  for (const [cat, count] of Object.entries(counts).sort((a,b) => b[1]-a[1])) {
+    const angle = (count/total)*2*Math.PI, endAngle = startAngle + angle;
+    const color = COLORS[cat] || '#374151';
+    if (angle >= 2*Math.PI - 0.001) {
+      arcs += `<circle cx="${r}" cy="${r}" r="${(outerR+innerR)/2}" fill="none" stroke="${color}" stroke-width="${outerR-innerR}"/>`;
     } else {
-      const x1 = r + outerR * Math.cos(startAngle), y1 = r + outerR * Math.sin(startAngle);
-      const x2 = r + outerR * Math.cos(endAngle), y2 = r + outerR * Math.sin(endAngle);
-      const x3 = r + innerR * Math.cos(endAngle), y3 = r + innerR * Math.sin(endAngle);
-      const x4 = r + innerR * Math.cos(startAngle), y4 = r + innerR * Math.sin(startAngle);
-      const lg = angle > Math.PI ? 1 : 0;
-      arcs += `<path d="M${x1},${y1} A${outerR},${outerR} 0 ${lg},1 ${x2},${y2} L${x3},${y3} A${innerR},${innerR} 0 ${lg},0 ${x4},${y4} Z" fill="${color}"/>`;
+      const x1=r+outerR*Math.cos(startAngle),y1=r+outerR*Math.sin(startAngle);
+      const x2=r+outerR*Math.cos(endAngle),y2=r+outerR*Math.sin(endAngle);
+      const x3=r+innerR*Math.cos(endAngle),y3=r+innerR*Math.sin(endAngle);
+      const x4=r+innerR*Math.cos(startAngle),y4=r+innerR*Math.sin(startAngle);
+      const la = angle > Math.PI ? 1 : 0;
+      arcs += `<path d="M${x1},${y1} A${outerR},${outerR} 0 ${la},1 ${x2},${y2} L${x3},${y3} A${innerR},${innerR} 0 ${la},0 ${x4},${y4} Z" fill="${color}"/>`;
     }
     startAngle = endAngle;
   }
-
-  const svg = `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">
-    ${arcs}
-    <circle cx="${r}" cy="${r}" r="${innerR - 1}" fill="#0d0e12"/>
-    <text x="${r}" y="${r}" text-anchor="middle" dy="0.35em" fill="#e2e4e9" font-family="'JetBrains Mono',monospace" font-size="${size < 44 ? 10 : 13}" font-weight="600">${total}</text>
-  </svg>`;
-
-  return L.divIcon({ html: svg, className: 'donut-cluster', iconSize: [size, size], iconAnchor: [size / 2, size / 2] });
+  return L.divIcon({
+    html: `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">${arcs}<circle cx="${r}" cy="${r}" r="${innerR-1}" fill="#0d0e12"/><text x="${r}" y="${r}" text-anchor="middle" dy="0.35em" fill="#e2e4e9" font-family="'JetBrains Mono',monospace" font-size="${size<44?10:13}" font-weight="600">${total}</text></svg>`,
+    className: 'donut-cluster', iconSize: [size,size], iconAnchor: [size/2,size/2],
+  });
 }
 
 function createMarkerIcon(rec) {
-  const color = CATEGORY_COLORS[rec.category] || '#374151';
+  const color = COLORS[rec._display] || '#374151';
   const hasRT = !!rec.rt_match;
   const s = 14;
   let svg = `<svg width="${s+6}" height="${s+6}" viewBox="0 0 ${s+6} ${s+6}" xmlns="http://www.w3.org/2000/svg">`;
   if (hasRT) svg += `<circle cx="${(s+6)/2}" cy="${(s+6)/2}" r="${s/2+2}" fill="none" stroke="#3b82f6" stroke-width="2"/>`;
   svg += `<circle cx="${(s+6)/2}" cy="${(s+6)/2}" r="${s/2-1}" fill="${color}" opacity="0.9"/></svg>`;
-  return L.divIcon({ html: svg, className: 'donut-cluster', iconSize: [s+6, s+6], iconAnchor: [(s+6)/2, (s+6)/2] });
+  return L.divIcon({ html: svg, className: 'donut-cluster', iconSize: [s+6,s+6], iconAnchor: [(s+6)/2,(s+6)/2] });
 }
 
 function updateMap() {
   if (!clusterGroup) return;
   clusterGroup.clearLayers();
   const markers = [];
-
   for (const rec of filteredRecords) {
     if (!rec.lat || !rec.lng) continue;
-    const marker = L.marker([rec.lat, rec.lng], { icon: createMarkerIcon(rec), category: rec.category || 'unknown' });
-
-    let p = `<div style="min-width:200px">`;
-    p += `<div style="font-weight:600;font-size:14px;margin-bottom:4px">${esc(rec.name || rec.dba)}</div>`;
+    const marker = L.marker([rec.lat, rec.lng], { icon: createMarkerIcon(rec), displayType: rec._display });
+    const gm = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(rec.address+', '+rec.city+', CO')}`;
+    const sv = `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${rec.lat},${rec.lng}`;
+    let p = `<div style="min-width:200px"><div style="font-weight:600;font-size:14px;margin-bottom:4px">${esc(rec.name||rec.dba)}</div>`;
     if (rec.dba && rec.name && rec.dba !== rec.name) p += `<div style="color:#8b8f9a;font-size:12px;margin-bottom:6px">DBA: ${esc(rec.dba)}</div>`;
     p += `<div style="font-size:12px;margin-bottom:2px">${esc(rec.address)}, ${esc(rec.city)}</div>`;
-    p += `<div style="font-size:12px;margin-bottom:6px">${esc(rec.license_type)} • <span style="color:${CATEGORY_COLORS[rec.category]}">${CATEGORY_LABELS[rec.category] || ''}</span></div>`;
+    p += `<div style="font-size:12px;margin-bottom:6px">${esc(rec.license_type)} • <span style="color:${COLORS[rec._display]}">${LABELS[rec._display]||''}</span></div>`;
     if (rec.status) p += `<div style="font-size:11px;color:#8b8f9a">Status: ${esc(rec.status)}</div>`;
-    if (rec.issue_date) p += `<div style="font-size:11px;color:#8b8f9a">Issued: ${rec.issue_date}</div>`;
-
-    const gUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(rec.address+', '+rec.city+', CO')}`;
-    const svUrl = `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${rec.lat},${rec.lng}`;
-    p += `<div style="margin-top:6px;display:flex;gap:10px">`;
-    p += `<a href="${gUrl}" target="_blank" style="color:#3b82f6;font-size:11px;text-decoration:none">📍 Maps</a>`;
-    p += `<a href="${svUrl}" target="_blank" style="color:#3b82f6;font-size:11px;text-decoration:none">🔭 Street View</a>`;
-    p += `</div>`;
-
+    if (rec.first_seen) p += `<div style="font-size:11px;color:#8b8f9a">First seen: ${rec.first_seen}</div>`;
+    p += `<div style="margin-top:6px;display:flex;gap:10px"><a href="${gm}" target="_blank" style="color:#3b82f6;font-size:11px;text-decoration:none">📍 Maps</a><a href="${sv}" target="_blank" style="color:#3b82f6;font-size:11px;text-decoration:none">🔭 Street View</a></div>`;
     if (rec.rt_match) {
-      p += `<div style="margin-top:8px;padding:6px 8px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.25);border-radius:6px;font-size:11px">`;
-      p += `<div style="color:#3b82f6;font-weight:600;margin-bottom:2px">✦ Restaurant Tracker</div>`;
-      p += `<div>${esc(rec.rt_match.name)} • ${rec.rt_match.rating||'—'}★ (${rec.rt_match.reviews||0})</div>`;
-      p += `</div>`;
+      p += `<div style="margin-top:8px;padding:6px 8px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.25);border-radius:6px;font-size:11px"><div style="color:#3b82f6;font-weight:600;margin-bottom:2px">✦ Restaurant Tracker</div><div>${esc(rec.rt_match.name)} • ${rec.rt_match.rating||'—'}★ (${rec.rt_match.reviews||0})</div></div>`;
     }
     p += `</div>`;
     marker.bindPopup(p, { maxWidth: 320 });
     markers.push(marker);
   }
-
   clusterGroup.addLayers(markers);
 }
 
-// ===== LICENSE LIST =====
+// ===== LIST =====
 function renderList() {
   document.getElementById('list-count').textContent = `${filteredRecords.length.toLocaleString()} records`;
-
   let sorted = [...filteredRecords];
-  if (sortCol) {
-    sorted.sort((a, b) => {
-      let va = cellVal(a, sortCol), vb = cellVal(b, sortCol);
-      if (va == null) va = '';
-      if (vb == null) vb = '';
+  if (sortCol !== null) {
+    sorted.sort((a,b) => {
+      let va = a[sortCol] ?? '', vb = b[sortCol] ?? '';
+      if (sortCol === 'rt_match') { va = a.rt_match ? 1 : 0; vb = b.rt_match ? 1 : 0; }
       if (typeof va === 'string') va = va.toLowerCase();
       if (typeof vb === 'string') vb = vb.toLowerCase();
-      return va < vb ? (sortAsc ? -1 : 1) : va > vb ? (sortAsc ? 1 : -1) : 0;
+      return va < vb ? (sortAsc?-1:1) : va > vb ? (sortAsc?1:-1) : 0;
     });
   }
 
-  const totalPages = Math.ceil(sorted.length / PAGE_SIZE) || 1;
-  if (listPage >= totalPages) listPage = totalPages - 1;
-  const start = listPage * PAGE_SIZE;
-  const page = sorted.slice(start, start + PAGE_SIZE);
+  const totalPages = Math.ceil(sorted.length/PAGE_SIZE);
+  if (listPage >= totalPages) listPage = Math.max(0, totalPages-1);
+  const page = sorted.slice(listPage*PAGE_SIZE, (listPage+1)*PAGE_SIZE);
 
   const cols = [
-    { key: 'name', label: 'Business Name' },
-    { key: 'category', label: 'Category' },
-    { key: 'license_type', label: 'License Type' },
-    { key: 'address', label: 'Address' },
-    { key: 'city', label: 'City' },
-    { key: 'neighborhood', label: 'Neighborhood' },
-    { key: 'issue_date', label: 'Issued' },
-    { key: 'rt_match', label: 'RT' },
+    {key:'name',label:'Business Name'}, {key:'_display',label:'Type'}, {key:'license_type',label:'License'},
+    {key:'status',label:'Status'}, {key:'address',label:'Address'}, {key:'city',label:'City'},
+    {key:'neighborhood',label:'Neighborhood'}, {key:'first_seen',label:'First Seen'}, {key:'rt_match',label:'RT'},
   ];
-
   document.getElementById('list-thead').innerHTML = '<tr>' + cols.map(c => {
-    const is = sortCol === c.key;
-    return `<th class="${is ? 'sorted' : ''}" onclick="doSort('${c.key}')">${c.label} <span class="sort-arrow">${is ? (sortAsc ? '▲' : '▼') : '▲'}</span></th>`;
+    const is = sortCol===c.key;
+    return `<th class="${is?'sorted':''}" onclick="sortList('${c.key}')">${c.label} <span class="sort-arrow">${is?(sortAsc?'▲':'▼'):'▲'}</span></th>`;
   }).join('') + '</tr>';
 
   document.getElementById('list-tbody').innerHTML = page.map(r => {
-    const cc = r.category === 'new_application' ? 'new' : (r.category || 'unknown');
-    const cl = CATEGORY_LABELS[r.category] || r.category || '—';
+    const cc = r._display === 'new' ? 'cat-new' : 'cat-delinquent';
+    const cl = LABELS[r._display] || '';
     const rt = r.rt_match ? `<span class="rt-badge" title="${esc(r.rt_match.name)} • ${r.rt_match.rating||'—'}★">✦</span>` : '';
-    const aUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.address+', '+r.city+', CO')}`;
-    // Escape the ID for onclick — replace single quotes
-    const safeId = r.id.replace(/'/g, "\\'");
+    const au = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.address+', '+r.city+', CO')}`;
     return `<tr>
-      <td><a class="name-link" onclick="openDetail('${safeId}')">${esc(r.name || r.dba || '—')}</a></td>
-      <td><span class="cat-badge cat-${cc}">${cl}</span></td>
-      <td>${esc(r.license_type || '—')}</td>
-      <td><a href="${aUrl}" target="_blank" style="color:var(--text);text-decoration:none">${esc(r.address || '—')}</a></td>
-      <td>${esc(r.city || '—')}</td>
-      <td>${esc(r.neighborhood || '—')}</td>
-      <td style="font-family:var(--mono);font-size:12px">${r.issue_date || '—'}</td>
+      <td><a class="name-link" onclick="openDetail('${esc(r.id)}')">${esc(r.name||r.dba||'—')}</a></td>
+      <td><span class="cat-badge ${cc}">${cl}</span></td>
+      <td>${esc(r.license_type||'—')}</td>
+      <td>${esc(r.status||'—')}</td>
+      <td><a href="${au}" target="_blank" style="color:var(--text);text-decoration:none">${esc(r.address||'—')}</a></td>
+      <td>${esc(r.city||'—')}</td>
+      <td>${esc(r.neighborhood||'—')}</td>
+      <td style="font-family:var(--mono);font-size:12px">${r.first_seen||'—'}</td>
       <td>${rt}</td>
     </tr>`;
   }).join('');
 
-  const pg = document.getElementById('list-pagination');
-  if (totalPages <= 1) { pg.innerHTML = ''; return; }
-  pg.innerHTML = `
+  const pd = document.getElementById('list-pagination');
+  if (totalPages <= 1) { pd.innerHTML = ''; return; }
+  pd.innerHTML = `
     <button ${listPage===0?'disabled':''} onclick="listPage=0;renderList()">«</button>
     <button ${listPage===0?'disabled':''} onclick="listPage--;renderList()">‹</button>
     <span class="page-info">${listPage+1} / ${totalPages}</span>
     <button ${listPage>=totalPages-1?'disabled':''} onclick="listPage++;renderList()">›</button>
-    <button ${listPage>=totalPages-1?'disabled':''} onclick="listPage=${totalPages-1};renderList()">»</button>
-  `;
+    <button ${listPage>=totalPages-1?'disabled':''} onclick="listPage=${totalPages-1};renderList()">»</button>`;
 }
 
-function cellVal(rec, key) { return key === 'rt_match' ? (rec.rt_match ? 1 : 0) : rec[key]; }
+function sortList(col) { if (sortCol===col) sortAsc=!sortAsc; else { sortCol=col; sortAsc=true; } listPage=0; renderList(); }
 
-function doSort(col) {
-  if (sortCol === col) sortAsc = !sortAsc;
-  else { sortCol = col; sortAsc = true; }
-  listPage = 0;
-  renderList();
-}
-
-// ===== DETAIL MODAL =====
+// ===== MODAL =====
 function openDetail(id) {
   const rec = DATA.records.find(r => r.id === id);
   if (!rec) return;
+  const color = COLORS[rec._display || (rec.category === 'delinquent' ? 'delinquent' : 'new')] || '#6b7280';
+  const label = LABELS[rec._display || rec.category] || rec.category || '';
+  const gm = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(rec.address+', '+rec.city+', CO')}`;
+  const sv = rec.lat&&rec.lng ? `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${rec.lat},${rec.lng}` : null;
 
-  const cc = rec.category === 'new_application' ? 'new' : (rec.category || 'unknown');
-  const cl = CATEGORY_LABELS[rec.category] || rec.category || '—';
-  const gUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(rec.address+', '+rec.city+', CO')}`;
-  const svUrl = rec.lat && rec.lng ? `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${rec.lat},${rec.lng}` : null;
-
-  let h = `<h2>${esc(rec.name || '—')}</h2>`;
+  let h = `<h2>${esc(rec.name||'—')}</h2>`;
   if (rec.dba && rec.dba !== rec.name) h += `<div class="modal-dba">DBA: ${esc(rec.dba)}</div>`;
-  h += `<span class="cat-badge cat-${cc}" style="display:inline-block;margin-bottom:8px">${cl}</span>`;
+  h += `<span class="cat-badge" style="background:${color}22;color:${color};margin-bottom:8px;display:inline-block">${label}</span>`;
 
   h += `<div class="modal-section"><h3>License Details</h3><div class="modal-grid">`;
-  h += fld('Type', rec.license_type);
-  h += fld('Number', rec.license_number);
-  h += fld('Status', rec.status);
-  h += fld('Source', rec.source === 'denver' ? 'Denver ArcGIS' : rec.source === 'state_approved' ? 'State (Approved)' : 'State (Active)');
+  h += field('Type', rec.license_type) + field('Number', rec.license_number) + field('Status', rec.status);
+  h += field('Source', rec.source==='denver'?'Denver ArcGIS':rec.source==='state_approved'?'State (Approved)':'State (Active)');
   h += `</div></div>`;
 
   h += `<div class="modal-section"><h3>Location</h3><div class="modal-grid">`;
-  h += fld('Address', rec.address);
-  h += fld('City', `${rec.city}, ${rec.state} ${rec.zip}`);
-  if (rec.neighborhood) h += fld('Neighborhood', rec.neighborhood);
-  if (rec.council_district) h += fld('Council Dist.', rec.council_district);
-  h += `</div><div class="modal-links">`;
-  h += `<a href="${gUrl}" target="_blank">📍 Google Maps</a>`;
-  if (svUrl) h += `<a href="${svUrl}" target="_blank">🔭 Street View</a>`;
+  h += field('Address', rec.address) + field('City', `${rec.city}, ${rec.state} ${rec.zip}`);
+  if (rec.neighborhood) h += field('Neighborhood', rec.neighborhood);
+  if (rec.council_district) h += field('Council Dist.', rec.council_district);
+  h += `</div><div class="modal-links"><a href="${gm}" target="_blank">📍 Google Maps</a>`;
+  if (sv) h += `<a href="${sv}" target="_blank">🔭 Street View</a>`;
   h += `</div></div>`;
 
   h += `<div class="modal-section"><h3>Dates</h3><div class="modal-grid">`;
-  h += fld('Issued', rec.issue_date || '—');
-  h += fld('Expires', rec.expiration_date || '—');
-  if (rec.hearing_date) h += fld('Hearing', rec.hearing_date);
-  if (rec.hearing_time) h += fld('Hearing Time', rec.hearing_time);
-  if (rec.hearing_status) h += fld('Hearing Status', rec.hearing_status);
+  h += field('Issued', rec.issue_date||'—') + field('Expires', rec.expiration_date||'—');
+  h += field('First Seen', rec.first_seen||'—');
+  if (rec.hearing_date) h += field('Hearing', rec.hearing_date);
+  if (rec.hearing_time) h += field('Hearing Time', rec.hearing_time);
+  if (rec.hearing_status) h += field('Hearing Status', rec.hearing_status);
   h += `</div></div>`;
 
   if (rec.rt_match) {
     const rt = rec.rt_match;
     h += `<div class="modal-rt"><h3>✦ Restaurant Tracker Match</h3><div class="modal-grid">`;
-    h += fld('Name', rt.name);
-    h += fld('Rating', rt.rating ? `${rt.rating}★ (${rt.reviews || 0})` : '—');
-    h += fld('Type', rt.type || '—');
-    h += fld('Status', rt.status || '—');
-    if (rt.first_seen) h += fld('First Seen', rt.first_seen);
+    h += field('Name', rt.name) + field('Rating', rt.rating ? `${rt.rating}★ (${rt.reviews||0})` : '—');
+    h += field('Type', rt.type||'—') + field('Status', rt.status||'—');
+    if (rt.first_seen) h += field('First Seen', rt.first_seen);
     h += `</div></div>`;
   }
 
@@ -935,13 +652,10 @@ function openDetail(id) {
   document.getElementById('modal-overlay').classList.add('open');
 }
 
-function fld(label, value) {
-  return `<div class="modal-field"><label>${label}</label><span>${esc(String(value || '—'))}</span></div>`;
-}
+function field(l, v) { return `<div class="modal-field"><label>${l}</label><span>${esc(String(v||'—'))}</span></div>`; }
 function closeModal() { document.getElementById('modal-overlay').classList.remove('open'); }
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
-
-function esc(str) { if (!str) return ''; const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+document.addEventListener('keydown', e => { if (e.key==='Escape') closeModal(); });
+function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 </script>
 </body>
 </html>
